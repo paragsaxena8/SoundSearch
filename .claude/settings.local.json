@@ -40,7 +40,8 @@
       "Bash(curl -s \"http://localhost:3001/api/search?q=shape&limit=1\")",
       "Bash(curl -s \"http://localhost:3001/api/search?q=shape&limit=5\")",
       "Bash(curl -s \"http://localhost:3001/api/search?q=test&limit=5\")",
-      "Bash(Remove-Item *)"
+      "Bash(Remove-Item *)",
+      "Bash(npx next *)"
     ]
   }
 }

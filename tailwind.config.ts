@@ -47,6 +47,7 @@ const config: Config = {
         'pulse-subtle': 'pulseSubtle 2s ease-in-out infinite',
         'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
         'pulse-button': 'pulseButton 1s ease-in-out infinite',
+        'heart-pop': 'heartPop 0.4s ease-out',
       },
       keyframes: {
         shimmer: {
@@ -75,6 +76,12 @@ const config: Config = {
         pulseButton: {
           '0%, 100%': { boxShadow: '0 0 0 0 rgba(13, 148, 136, 0.4)' },
           '50%': { boxShadow: '0 0 0 8px rgba(13, 148, 136, 0)' },
+        },
+        heartPop: {
+          '0%': { transform: 'scale(1)' },
+          '30%': { transform: 'scale(1.3)' },
+          '60%': { transform: 'scale(0.95)' },
+          '100%': { transform: 'scale(1)' },
         },
       },
     },

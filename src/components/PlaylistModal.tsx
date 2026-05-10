@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { usePlaylist, storedSongToSong } from '@/lib/playlist'
 import type { Song } from '@/lib/gaana'
@@ -10,14 +10,26 @@ interface PlaylistModalProps {
   isOpen: boolean
   onClose: () => void
   onPlaySong: (song: Song, quality: Quality) => void
+  initialPlaylistId?: string | null
 }
 
-export function PlaylistModal({ isOpen, onClose, onPlaySong }: PlaylistModalProps) {
+export function PlaylistModal({ isOpen, onClose, onPlaySong, initialPlaylistId }: PlaylistModalProps) {
   const { playlists, isLoading, createNewPlaylist, removePlaylist, getSongs } = usePlaylist()
-  const [selectedPlaylist, setSelectedPlaylist] = useState<string | null>(null)
+  const [selectedPlaylist, setSelectedPlaylist] = useState<string | null>(initialPlaylistId ?? null)
   const [songs, setSongs] = useState<{ id: string; title: string; artists: string; thumbnail: { small: string } }[]>([])
   const [isCreating, setIsCreating] = useState(false)
   const [newPlaylistName, setNewPlaylistName] = useState('')
+
+  // Auto-load songs when opened directly to a specific playlist
+  useEffect(() => {
+    if (isOpen && initialPlaylistId) {
+      handleSelectPlaylist(initialPlaylistId)
+    }
+    if (!isOpen) {
+      setSelectedPlaylist(null)
+      setSongs([])
+    }
+  }, [isOpen, initialPlaylistId])
 
   const handleSelectPlaylist = async (playlistId: string) => {
     setSelectedPlaylist(playlistId)
@@ -65,7 +77,9 @@ export function PlaylistModal({ isOpen, onClose, onPlaySong }: PlaylistModalProp
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h2 className="text-lg font-semibold text-text-primary">
-            {selectedPlaylist ? 'Playlist' : 'My Playlists'}
+            {selectedPlaylist
+              ? playlists.find(p => p.id === selectedPlaylist)?.name ?? 'Playlist'
+              : 'My Playlists'}
           </h2>
           <button
             onClick={onClose}
