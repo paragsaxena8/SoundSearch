@@ -10,7 +10,11 @@ const spaceGrotesk = Space_Grotesk({
 
 export const metadata: Metadata = {
   title: 'SoundSearch',
-  description: 'Search millions of songs from Gaana',
+  description: 'Search millions of songs from Globe',
+  openGraph: {
+    title: 'SoundSearch',
+    description: 'Search millions of songs from Globe'
+  }
 }
 
 export default function RootLayout({

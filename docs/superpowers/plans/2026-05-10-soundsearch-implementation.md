@@ -988,7 +988,7 @@ function App() {
           Find your music
         </h1>
         <p className="text-base text-text-secondary mt-2 mb-8">
-          Search millions of songs from Gaana
+          Search millions of songs from Globe
         </p>
 
         <SearchBar onSearch={handleSearch} isLoading={isLoading} />

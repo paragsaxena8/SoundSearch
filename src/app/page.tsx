@@ -183,7 +183,7 @@ function SearchPage() {
             Find your music
           </h1>
           <p className="text-base text-text-secondary mt-2 mb-8 font-mono">
-            Search millions of songs from Gaana
+            Search millions of songs from Globe
           </p>
 
           <SearchBar onSearch={handleSearch} isLoading={isLoading} recentSearches={getRecentSearches()} onClearRecentSearches={clearRecentSearches} defaultLimit={defaultLimit} />
