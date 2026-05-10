@@ -218,11 +218,29 @@ export function MusicPlayer({
     if (!audioRef.current) return;
     if (isPlaying) {
       audioRef.current.pause();
+      setIsPlaying(false);
     } else {
-      audioRef.current.play();
+      setIsPlaying(true);
+      audioRef.current.play().catch(() => setIsPlaying(false));
     }
-    setIsPlaying(!isPlaying);
   }, [isPlaying]);
+
+  // Sync isPlaying state with actual audio element events
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onEnded = () => setIsPlaying(false);
+    audio.addEventListener('play', onPlay);
+    audio.addEventListener('pause', onPause);
+    audio.addEventListener('ended', onEnded);
+    return () => {
+      audio.removeEventListener('play', onPlay);
+      audio.removeEventListener('pause', onPause);
+      audio.removeEventListener('ended', onEnded);
+    };
+  }, [streamUrl]);
 
   const seek = useCallback((seconds: number) => {
     if (!audioRef.current) return;
@@ -366,288 +384,287 @@ export function MusicPlayer({
 
       {/* Expanded drawer */}
       <div
-        className={`fixed inset-x-0 bottom-0 bg-surface border-t-2 border-border shadow-brutal-lg z-50 transform transition-transform duration-300 ${
+        className={`fixed inset-0 bg-surface z-50 transform transition-transform duration-300 ${
           isExpanded ? "translate-y-0" : "translate-y-full"
         }`}
-        style={{ height: "80vh" }}
       >
-        <div className="flex justify-center pt-4">
+        <div className="flex justify-center pt-3 sm:pt-4">
           <div className="w-12 h-1 bg-border rounded-full" />
         </div>
 
-        <div className="h-full flex flex-row max-w-5xl mx-auto px-6 py-4 gap-6">
-          {/* Left: Player controls */}
-          <div className="flex-1 flex flex-col min-w-0">
-            {/* Actions */}
-            <div className="flex items-center justify-end mb-4">
-              <div className="flex items-center gap-1">
-                <ActionsDropdown side="bottom">
-                  <PlayerActionsMenu
-                    song={song}
-                    onDownload={handleDownload}
-                    onClosePlayer={onClose}
-                  />
-                </ActionsDropdown>
-                <button
-                  onClick={() => setIsExpanded(false)}
-                  className="p-2 text-text-muted hover:text-text-primary transition-colors"
-                  title="Collapse"
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path d="M6 9l6 6 6-6" />
-                  </svg>
-                </button>
+        <div className="h-full flex flex-col overflow-hidden px-4 sm:px-6 py-2 sm:py-4">
+          {/* Top bar: actions */}
+          <div className="flex items-center justify-end mb-2 sm:mb-4 shrink-0">
+            <div className="flex items-center gap-1">
+              <ActionsDropdown side="bottom">
+                <PlayerActionsMenu
+                  song={song}
+                  onDownload={handleDownload}
+                  onClosePlayer={onClose}
+                />
+              </ActionsDropdown>
+              <button
+                onClick={() => setIsExpanded(false)}
+                className="p-2 text-text-muted hover:text-text-primary transition-colors"
+                title="Collapse"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Main content: player + queue */}
+          <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-4 sm:gap-6 overflow-hidden">
+            {/* Player section */}
+            <div className="flex flex-col items-center lg:flex-1 lg:max-w-md lg:mx-auto">
+              {/* Album art */}
+              <div className="flex justify-center mb-3 sm:mb-4">
+                <img
+                  src={song.thumbnail.large}
+                  alt={song.title}
+                  className="w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64 border-2 border-border object-cover shadow-brutal"
+                />
               </div>
-            </div>
 
-            {/* Album art */}
-            <div className="flex justify-center mb-6">
-              <img
-                src={song.thumbnail.large}
-                alt={song.title}
-                className="w-64 h-64 border-2 border-border object-cover shadow-brutal"
-              />
-            </div>
+              {/* Song info */}
+              <div className="text-center mb-3 sm:mb-4 w-full max-w-sm">
+                <h3 className="text-base sm:text-lg font-bold text-text-primary truncate mb-1">{song.title}</h3>
+                <p className="text-xs sm:text-sm text-text-secondary truncate">{song.artists}</p>
+              </div>
 
-            {/* Song info */}
-            <div className="text-center mb-6">
-              <h3 className="text-lg font-bold text-text-primary truncate mb-1">{song.title}</h3>
-              <p className="text-sm text-text-secondary truncate">{song.artists}</p>
-            </div>
-
-            {/* Progress bar */}
-            <div className="mb-6">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-xs text-text-muted font-mono font-bold w-10">{formatTime(currentTime)}</span>
-                <div className="flex-1 relative group">
-                  <input
-                    type="range"
-                    min={0}
-                    max={duration || 100}
-                    value={currentTime}
-                    onChange={handleSeek}
-                    aria-label="Seek audio position"
-                    className="w-full h-2 bg-surface-elevated appearance-none cursor-pointer border border-border
-                      [&::-webkit-slider-thumb]:appearance-none
-                      [&::-webkit-slider-thumb]:w-4
-                      [&::-webkit-slider-thumb]:h-4
-                      [&::-webkit-slider-thumb]:bg-primary
-                      [&::-webkit-slider-thumb]:border-2
-                      [&::-webkit-slider-thumb]:border-border
-                      [&::-webkit-slider-thumb]:rounded-none
-                      [&::-webkit-slider-thumb]:transition-transform
-                      [&::-webkit-slider-thumb]:duration-200
-                      group-hover:[&::-webkit-slider-thumb]:scale-125"
-                  />
+              {/* Progress bar */}
+              <div className="w-full max-w-sm mb-3 sm:mb-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-xs text-text-muted font-mono font-bold w-10">{formatTime(currentTime)}</span>
+                  <div className="flex-1 relative group">
+                    <input
+                      type="range"
+                      min={0}
+                      max={duration || 100}
+                      value={currentTime}
+                      onChange={handleSeek}
+                      aria-label="Seek audio position"
+                      className="w-full h-2 bg-surface-elevated appearance-none cursor-pointer border border-border
+                        [&::-webkit-slider-thumb]:appearance-none
+                        [&::-webkit-slider-thumb]:w-4
+                        [&::-webkit-slider-thumb]:h-4
+                        [&::-webkit-slider-thumb]:bg-primary
+                        [&::-webkit-slider-thumb]:border-2
+                        [&::-webkit-slider-thumb]:border-border
+                        [&::-webkit-slider-thumb]:rounded-none
+                        [&::-webkit-slider-thumb]:transition-transform
+                        [&::-webkit-slider-thumb]:duration-200
+                        group-hover:[&::-webkit-slider-thumb]:scale-125"
+                    />
+                  </div>
+                  <span className="text-xs text-text-muted font-mono font-bold w-10 text-right">{formatTime(duration)}</span>
                 </div>
-                <span className="text-xs text-text-muted font-mono font-bold w-10 text-right">{formatTime(duration)}</span>
               </div>
-            </div>
 
-            {/* Transport controls */}
-            <div className="flex items-center gap-2">
-              {/* Left side: prev-in-queue, back-10s, favorite, repeat */}
-              <div className="flex items-center gap-1 flex-1 justify-end">
-                <button
-                  onClick={onPlayPrevInQueue}
-                  disabled={!hasPrevInQueue}
-                  className="p-2 text-text-secondary hover:text-text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  title="Previous in queue"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M6 6h2v12H6zM9 12l9 6V6z" />
-                  </svg>
-                </button>
-                <button onClick={() => seek(-10)} className="p-2 text-text-secondary hover:text-text-primary transition-colors" title="Back 10s">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z" />
-                  </svg>
-                </button>
-                <button
-                  onClick={toggleLikeSong}
-                  disabled={isLikeBusy}
-                  className={`p-2 transition-all duration-200 ${isLiked ? 'text-pink-500 hover:text-pink-400' : 'text-text-muted hover:text-text-primary'}`}
-                  title={isLiked ? 'Remove from favorites' : 'Add to favorites'}
-                  key={heartPopKey}
-                >
-                  <svg
-                    width="20" height="20" viewBox="0 0 24 24"
-                    fill={isLiked ? 'currentColor' : 'none'}
-                    stroke="currentColor" strokeWidth="2"
-                    className={isLiked ? 'animate-heart-pop' : ''}
+              {/* Transport controls */}
+              <div className="flex items-center gap-2 w-full max-w-sm justify-center">
+                {/* Left side: prev-in-queue, back-10s, favorite, repeat */}
+                <div className="flex items-center gap-1 flex-1 justify-end">
+                  <button
+                    onClick={onPlayPrevInQueue}
+                    disabled={!hasPrevInQueue}
+                    className="p-2 text-text-secondary hover:text-text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Previous in queue"
                   >
-                    <path d="M12 21s-7-4.35-9.33-8.11C.5 9.34 2.42 5 6.5 5c2.16 0 3.44 1.23 4.2 2.36C11.46 6.23 12.84 5 15 5c4.08 0 6 4.34 3.83 7.89C16.5 16.65 12 21 12 21z" />
-                  </svg>
-                </button>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M6 6h2v12H6zM9 12l9 6V6z" />
+                    </svg>
+                  </button>
+                  <button onClick={() => seek(-10)} className="p-2 text-text-secondary hover:text-text-primary transition-colors" title="Back 10s">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={toggleLikeSong}
+                    disabled={isLikeBusy}
+                    className={`p-2 transition-all duration-200 ${isLiked ? 'text-pink-500 hover:text-pink-400' : 'text-text-muted hover:text-text-primary'}`}
+                    title={isLiked ? 'Remove from favorites' : 'Add to favorites'}
+                    key={heartPopKey}
+                  >
+                    <svg
+                      width="20" height="20" viewBox="0 0 24 24"
+                      fill={isLiked ? 'currentColor' : 'none'}
+                      stroke="currentColor" strokeWidth="2"
+                      className={isLiked ? 'animate-heart-pop' : ''}
+                    >
+                      <path d="M12 21s-7-4.35-9.33-8.11C.5 9.34 2.42 5 6.5 5c2.16 0 3.44 1.23 4.2 2.36C11.46 6.23 12.84 5 15 5c4.08 0 6 4.34 3.83 7.89C16.5 16.65 12 21 12 21z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={cycleRepeat}
+                    className={`p-2 transition-all duration-200 ${repeatMode !== 'off' ? 'text-primary hover:text-primary-hover' : 'text-text-muted hover:text-text-primary'}`}
+                    title={repeatMode === 'off' ? 'Repeat: Off' : repeatMode === 'track' ? 'Repeat: Current song' : 'Repeat: Queue'}
+                  >
+                    {repeatMode === 'track' ? (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M17 1l4 4-4 4" />
+                        <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                        <path d="M7 23l-4-4 4-4" />
+                        <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                        <text x="12" y="16" textAnchor="middle" fontSize="8" fill="currentColor" stroke="none" fontWeight="bold">1</text>
+                      </svg>
+                    ) : (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M17 1l4 4-4 4" />
+                        <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                        <path d="M7 23l-4-4 4-4" />
+                        <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+
+                {/* Center: play/pause */}
                 <button
-                  onClick={cycleRepeat}
-                  className={`p-2 transition-all duration-200 ${repeatMode !== 'off' ? 'text-primary hover:text-primary-hover' : 'text-text-muted hover:text-text-primary'}`}
-                  title={repeatMode === 'off' ? 'Repeat: Off' : repeatMode === 'track' ? 'Repeat: Current song' : 'Repeat: Queue'}
+                  onClick={togglePlay}
+                  disabled={isLoading}
+                  className="w-14 h-14 border-2 border-border bg-primary flex items-center justify-center transition-all duration-100 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-brutal hover:-translate-x-[1px] hover:-translate-y-[1px] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] shrink-0"
+                  title="Play/Pause (Space)"
                 >
-                  {repeatMode === 'track' ? (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="M17 1l4 4-4 4" />
-                      <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-                      <path d="M7 23l-4-4 4-4" />
-                      <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-                      <text x="12" y="16" textAnchor="middle" fontSize="8" fill="currentColor" stroke="none" fontWeight="bold">1</text>
+                  {isLoading ? (
+                    <div className="w-5 h-5 border-2 border-border/30 border-t-border rounded-full animate-spin" />
+                  ) : isPlaying ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#1A1A1A">
+                      <rect x="6" y="4" width="4" height="16" rx="1" />
+                      <rect x="14" y="4" width="4" height="16" rx="1" />
                     </svg>
                   ) : (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="M17 1l4 4-4 4" />
-                      <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-                      <path d="M7 23l-4-4 4-4" />
-                      <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#1A1A1A">
+                      <path d="M8 5v14l11-7z" />
                     </svg>
                   )}
                 </button>
-              </div>
 
-              {/* Center: play/pause */}
-              <button
-                onClick={togglePlay}
-                disabled={isLoading}
-                className="w-14 h-14 border-2 border-border bg-primary flex items-center justify-center transition-all duration-100 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-brutal hover:-translate-x-[1px] hover:-translate-y-[1px] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
-                title="Play/Pause (Space)"
-              >
-                {isLoading ? (
-                  <div className="w-5 h-5 border-2 border-border/30 border-t-border rounded-full animate-spin" />
-                ) : isPlaying ? (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="#1A1A1A">
-                    <rect x="6" y="4" width="4" height="16" rx="1" />
-                    <rect x="14" y="4" width="4" height="16" rx="1" />
-                  </svg>
-                ) : (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="#1A1A1A">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                )}
-              </button>
-
-              {/* Right side: forward-10s, next-in-queue */}
-              <div className="flex items-center gap-1 flex-1 justify-start">
-                <button onClick={() => seek(10)} className="p-2 text-text-secondary hover:text-text-primary transition-colors" title="Forward 10s">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M13 6v12l8.5-6L13 6zm-.5 6L4 6v12l8.5-6z" />
-                  </svg>
-                </button>
-                <button
-                  onClick={onPlayNextInQueue}
-                  disabled={!hasNextInQueue}
-                  className="p-2 text-text-secondary hover:text-text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  title="Next in queue"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M16 6h2v12h-2zM6 6v12l9-6z" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Queue panel */}
-          <div className="w-72 shrink-0 flex flex-col border-l-2 border-border pl-6">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-bold text-text-primary uppercase tracking-wide">Queue</h4>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-text-muted font-mono font-bold">{queue.length} songs</span>
-                {queue.length > 0 && (
-                  <button
-                    onClick={onClearQueue}
-                    className="text-xs font-bold text-error hover:text-error/80 uppercase tracking-wide"
-                    title="Clear queue (keeps current song)"
-                  >
-                    Clear
+                {/* Right side: forward-10s, next-in-queue */}
+                <div className="flex items-center gap-1 flex-1 justify-start">
+                  <button onClick={() => seek(10)} className="p-2 text-text-secondary hover:text-text-primary transition-colors" title="Forward 10s">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M13 6v12l8.5-6L13 6zm-.5 6L4 6v12l8.5-6z" />
+                    </svg>
                   </button>
+                  <button
+                    onClick={onPlayNextInQueue}
+                    disabled={!hasNextInQueue}
+                    className="p-2 text-text-secondary hover:text-text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Next in queue"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M16 6h2v12h-2zM6 6v12l9-6z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Queue section */}
+            <div className="flex flex-col min-h-0 lg:w-72 lg:shrink-0 lg:border-l-2 lg:border-border lg:pl-6">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-sm font-bold text-text-primary uppercase tracking-wide">Queue</h4>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-text-muted font-mono font-bold">{queue.length} songs</span>
+                  {queue.length > 0 && (
+                    <button
+                      onClick={onClearQueue}
+                      className="text-xs font-bold text-error hover:text-error/80 uppercase tracking-wide"
+                      title="Clear queue (keeps current song)"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto pr-1 space-y-1.5 min-h-0">
+                {queue.length === 0 ? (
+                  <div className="text-center text-text-muted text-sm font-bold uppercase py-8">No songs in queue</div>
+                ) : (
+                  queue.map((queuedSong) => {
+                    const isCurrent = queuedSong.id === song.id
+                    return (
+                      <div
+                        key={queuedSong.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => onPlayFromQueue(queuedSong)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onPlayFromQueue(queuedSong) }}
+                        className={`w-full text-left flex items-center gap-2.5 p-2 border-2 transition-all duration-100 cursor-pointer ${
+                          isCurrent
+                            ? "border-primary bg-primary/15 shadow-brutal-sm"
+                            : "border-border bg-surface hover:border-primary hover:shadow-brutal-sm"
+                        }`}
+                      >
+                        {isCurrent && (
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            <span className="w-0.5 h-3 bg-primary rounded-full animate-pulse" />
+                            <span className="w-0.5 h-4 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.15s' }} />
+                            <span className="w-0.5 h-2 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.3s' }} />
+                          </div>
+                        )}
+                        <img
+                          src={queuedSong.thumbnail.small}
+                          alt={queuedSong.title}
+                          className={`w-8 h-8 border object-cover flex-shrink-0 ${isCurrent ? 'border-primary' : 'border-border'}`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-xs truncate font-bold ${isCurrent ? "text-primary" : "text-text-primary"}`}>
+                            {queuedSong.title}
+                          </p>
+                          <p className="text-[11px] text-text-secondary truncate">{queuedSong.artists}</p>
+                        </div>
+                        <div className="flex items-center gap-0.5">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onMoveQueueItem(queuedSong.id, "up")
+                            }}
+                            className="p-1 text-text-muted hover:text-text-primary transition-colors"
+                            title="Move up"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                              <path d="M18 15l-6-6-6 6" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onMoveQueueItem(queuedSong.id, "down")
+                            }}
+                            className="p-1 text-text-muted hover:text-text-primary transition-colors"
+                            title="Move down"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                              <path d="M6 9l6 6 6-6" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onRemoveFromQueue(queuedSong.id)
+                            }}
+                            className="p-1 text-text-muted hover:text-error transition-colors"
+                            title="Remove from queue"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                              <line x1="18" y1="6" x2="6" y2="18" />
+                              <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })
                 )}
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto pr-1 space-y-1.5 min-h-0">
-              {queue.length === 0 ? (
-                <div className="text-center text-text-muted text-sm font-bold uppercase py-8">No songs in queue</div>
-              ) : (
-                queue.map((queuedSong) => {
-                  const isCurrent = queuedSong.id === song.id
-                  return (
-                    <div
-                      key={queuedSong.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => onPlayFromQueue(queuedSong)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onPlayFromQueue(queuedSong) }}
-                      className={`w-full text-left flex items-center gap-2.5 p-2 border-2 transition-all duration-100 cursor-pointer ${
-                        isCurrent
-                          ? "border-primary bg-primary/15 shadow-brutal-sm"
-                          : "border-border bg-surface hover:border-primary hover:shadow-brutal-sm"
-                      }`}
-                    >
-                      {isCurrent && (
-                        <div className="flex items-center gap-0.5 shrink-0">
-                          <span className="w-0.5 h-3 bg-primary rounded-full animate-pulse" />
-                          <span className="w-0.5 h-4 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.15s' }} />
-                          <span className="w-0.5 h-2 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.3s' }} />
-                        </div>
-                      )}
-                      <img
-                        src={queuedSong.thumbnail.small}
-                        alt={queuedSong.title}
-                        className={`w-8 h-8 border object-cover flex-shrink-0 ${isCurrent ? 'border-primary' : 'border-border'}`}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className={`text-xs truncate font-bold ${isCurrent ? "text-primary" : "text-text-primary"}`}>
-                          {queuedSong.title}
-                        </p>
-                        <p className="text-[11px] text-text-secondary truncate">{queuedSong.artists}</p>
-                      </div>
-                      <div className="flex items-center gap-0.5">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onMoveQueueItem(queuedSong.id, "up")
-                          }}
-                          className="p-1 text-text-muted hover:text-text-primary transition-colors"
-                          title="Move up"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                            <path d="M18 15l-6-6-6 6" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onMoveQueueItem(queuedSong.id, "down")
-                          }}
-                          className="p-1 text-text-muted hover:text-text-primary transition-colors"
-                          title="Move down"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                            <path d="M6 9l6 6 6-6" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onRemoveFromQueue(queuedSong.id)
-                          }}
-                          className="p-1 text-text-muted hover:text-error transition-colors"
-                          title="Remove from queue"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })
-              )}
-            </div>
           </div>
-
         </div>
-
-        {/* Keyboard shortcuts help */}
       </div>
 
       {/* Minimized player bar */}
