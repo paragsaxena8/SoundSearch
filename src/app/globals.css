@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
 @layer base {
   html {
     @apply bg-canvas text-text-primary antialiased;
@@ -9,5 +11,56 @@
 
   body {
     @apply font-sans;
+  }
+
+  /* Neo-brutalism scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-canvas;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border/30 rounded-none border border-border/50;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-border/50;
+  }
+}
+
+@layer components {
+  /* Neo-brutalism base button */
+  .btn-brutal {
+    @apply border-2 border-border font-semibold transition-all duration-100;
+  }
+
+  .btn-brutal:hover {
+    @apply shadow-brutal-hover -translate-x-[1px] -translate-y-[1px];
+  }
+
+  .btn-brutal:active {
+    @apply shadow-none translate-x-[2px] translate-y-[2px];
+  }
+
+  /* Neo-brutalism card */
+  .card-brutal {
+    @apply bg-surface border-2 border-border shadow-brutal;
+  }
+
+  .card-brutal:hover {
+    @apply shadow-brutal-hover -translate-x-[1px] -translate-y-[1px];
+  }
+
+  /* Neon glow utility */
+  .glow-yellow {
+    box-shadow: 0 0 20px rgba(234, 179, 8, 0.3), 0 0 40px rgba(234, 179, 8, 0.1);
+  }
+
+  .glow-pink {
+    box-shadow: 0 0 20px rgba(236, 72, 153, 0.3), 0 0 40px rgba(236, 72, 153, 0.1);
   }
 }

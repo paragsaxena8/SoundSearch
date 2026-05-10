@@ -52,7 +52,7 @@ export function RecentPlays({ onPlay }: RecentPlaysProps) {
     <div className="w-full max-w-4xl mx-auto mb-8 space-y-8">
       {likedSongs.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold text-text-primary mb-4">Liked Songs</h2>
+          <h2 className="text-lg font-bold text-text-primary uppercase tracking-wide mb-4">Liked Songs</h2>
           <div className="flex gap-3 overflow-x-auto pb-2">
             {likedSongs.map((song) => (
               <div
@@ -60,23 +60,23 @@ export function RecentPlays({ onPlay }: RecentPlaysProps) {
                 onClick={() => onPlay(song, 'high')}
                 className="flex-shrink-0 w-36 group cursor-pointer"
               >
-                <div className="relative aspect-square rounded-lg overflow-hidden mb-2">
+                <div className="relative aspect-square border-2 border-border overflow-hidden mb-2">
                   <img
                     src={song.thumbnail.medium}
                     alt={song.title}
                     className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-primary text-white text-[10px] font-medium">
+                  <div className="absolute inset-0 bg-primary/30 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute top-1 left-1 px-1.5 py-0.5 border border-border bg-primary text-border text-[10px] font-bold uppercase">
                     Liked
                   </div>
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-primary/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 border-2 border-border bg-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#1A1A1A">
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   </div>
                 </div>
-                <p className="text-sm font-medium text-text-primary truncate">{song.title}</p>
+                <p className="text-sm font-bold text-text-primary truncate">{song.title}</p>
                 <p className="text-xs text-text-secondary truncate">{song.artists}</p>
               </div>
             ))}
@@ -86,7 +86,7 @@ export function RecentPlays({ onPlay }: RecentPlaysProps) {
 
       {recentPlays.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold text-text-primary mb-4">Recent Plays</h2>
+          <h2 className="text-lg font-bold text-text-primary uppercase tracking-wide mb-4">Recent Plays</h2>
           <div className="flex gap-3 overflow-x-auto pb-2">
             {recentPlays.map((play) => (
               <div
@@ -94,26 +94,26 @@ export function RecentPlays({ onPlay }: RecentPlaysProps) {
                 onClick={() => onPlay(play.song, play.quality)}
                 className="flex-shrink-0 w-36 group cursor-pointer"
               >
-                <div className="relative aspect-square rounded-lg overflow-hidden mb-2">
+                <div className="relative aspect-square border-2 border-border overflow-hidden mb-2">
                   <img
                     src={play.song.thumbnail.medium}
                     alt={play.song.title}
                     className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute inset-0 bg-primary/30 opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div
-                    className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-white text-[10px] font-medium"
+                    className="absolute bottom-1 left-1 px-1.5 py-0.5 border border-border text-white text-[10px] font-bold uppercase"
                     style={{ backgroundColor: getLanguageColor(play.song.language) }}
                   >
                     {play.song.language}
                   </div>
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-primary/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 border-2 border-border bg-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#1A1A1A">
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   </div>
                 </div>
-                <p className="text-sm font-medium text-text-primary truncate">{play.song.title}</p>
+                <p className="text-sm font-bold text-text-primary truncate">{play.song.title}</p>
                 <p className="text-xs text-text-secondary truncate">{play.song.artists}</p>
               </div>
             ))}

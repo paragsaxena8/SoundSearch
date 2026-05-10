@@ -24,12 +24,12 @@ export function ActionsDropdown({ children, side = 'bottom' }: ActionsDropdownPr
         <button
           ref={triggerRef}
           className={cn(
-            'p-2 rounded-lg',
-            'text-text-secondary hover:text-text-primary hover:bg-surface-elevated'
+            'p-2 border-2 border-transparent',
+            'text-text-secondary hover:text-text-primary hover:border-border hover:bg-surface-elevated transition-all'
           )}
           title="More actions"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <circle cx="12" cy="12" r="1" />
             <circle cx="12" cy="5" r="1" />
             <circle cx="12" cy="19" r="1" />
@@ -41,7 +41,7 @@ export function ActionsDropdown({ children, side = 'bottom' }: ActionsDropdownPr
         <DropdownMenu.Content
           className={cn(
             'min-w-[180px] max-h-[min(24rem,var(--radix-dropdown-menu-content-available-height))]',
-            'bg-surface border border-border rounded-card shadow-elevated z-50 overflow-y-auto'
+            'bg-surface border-2 border-border shadow-brutal-lg z-50 overflow-y-auto'
           )}
           sideOffset={4}
           align="end"
@@ -71,7 +71,7 @@ export function MenuItem({ icon, label, onClick, danger, disabled }: MenuItemPro
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'w-full px-4 py-2.5 text-left text-sm flex items-center gap-3',
+        'w-full px-4 py-2.5 text-left text-sm font-medium flex items-center gap-3',
         'outline-none cursor-pointer',
         disabled && 'opacity-50 cursor-not-allowed',
         danger
@@ -96,20 +96,20 @@ export function SubMenu({ icon, label, children }: SubMenuProps) {
     <DropdownMenu.Sub>
       <DropdownMenu.SubTrigger
         className={cn(
-          'w-full px-4 py-2.5 text-left text-sm flex items-center gap-3',
+          'w-full px-4 py-2.5 text-left text-sm font-medium flex items-center gap-3',
           'outline-none cursor-pointer text-text-primary',
           'focus:bg-surface-elevated data-[state=open]:bg-surface-elevated'
         )}
       >
         {icon && <span className="w-5 h-5 flex items-center justify-center flex-shrink-0">{icon}</span>}
         <span className="flex-1">{label}</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-muted">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-text-muted">
           <path d="M9 18l6-6-6-6" />
         </svg>
       </DropdownMenu.SubTrigger>
       <DropdownMenu.Portal>
         <DropdownMenu.SubContent
-          className="min-w-[140px] max-h-[min(20rem,var(--radix-dropdown-menu-content-available-height))] bg-surface border border-border rounded-card shadow-elevated z-50 overflow-y-auto"
+          className="min-w-[140px] max-h-[min(20rem,var(--radix-dropdown-menu-content-available-height))] bg-surface border-2 border-border shadow-brutal-lg z-50 overflow-y-auto"
           sideOffset={-1}
           alignOffset={-2}
           avoidCollisions
@@ -136,10 +136,10 @@ export function MenuRadioItem({ value, label, checked, onSelect }: RadioItemProp
       value={value}
       onSelect={onSelect}
       className={cn(
-        'w-full px-4 py-2 text-left text-sm flex items-center gap-3',
+        'w-full px-4 py-2 text-left text-sm font-medium flex items-center gap-3',
         'outline-none cursor-pointer',
         checked
-          ? 'text-primary bg-primary/10'
+          ? 'text-border bg-primary/20'
           : 'text-text-primary focus:bg-surface-elevated'
       )}
     >
@@ -170,5 +170,5 @@ export function MenuRadioGroup({ value, onValueChange, children }: RadioGroupPro
 }
 
 export function MenuDivider() {
-  return <DropdownMenu.Separator className="h-px bg-border my-1" />
+  return <DropdownMenu.Separator className="h-[2px] bg-border my-1" />
 }

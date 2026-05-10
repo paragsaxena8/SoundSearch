@@ -3,10 +3,10 @@
 import { memo, useState, useRef, useEffect, useCallback } from "react";
 import type { Song } from "@/lib/gaana";
 import type { Quality } from "@/lib/config";
-import { QUALITY_OPTIONS, QUALITY_TO_MUSIC_KEY } from "@/lib/config";
+import { QUALITY_TO_MUSIC_KEY } from "@/lib/config";
 import { usePlaylist } from "@/lib/playlist";
 import { useToast } from "@/lib/toast";
-import { ActionsDropdown, MenuItem, MenuDivider, SubMenu, MenuRadioGroup, MenuRadioItem } from "./ActionsDropdown";
+import { ActionsDropdown, MenuItem, MenuDivider, SubMenu } from "./ActionsDropdown";
 import { AddToPlaylistDropdown } from "./AddToPlaylistDropdown";
 
 interface MusicPlayerProps {
@@ -14,7 +14,6 @@ interface MusicPlayerProps {
   queue: Song[];
   quality: Quality;
   onClose: () => void;
-  onQualityChange?: (quality: Quality) => void;
   onPlayFromQueue: (song: Song) => void;
   onPlayNextInQueue: () => void;
   onPlayPrevInQueue: () => void;
@@ -28,41 +27,20 @@ type RepeatMode = 'off' | 'track' | 'queue';
 
 interface PlayerActionsMenuProps {
   song: Song;
-  quality: Quality;
-  onQualityChange?: (quality: Quality) => void;
   onDownload: () => void;
-  onShowShortcuts: () => void;
   onClosePlayer: () => void;
 }
 
 const PlayerActionsMenu = memo(function PlayerActionsMenu({
   song,
-  quality,
-  onQualityChange,
   onDownload,
-  onShowShortcuts,
   onClosePlayer,
 }: PlayerActionsMenuProps) {
   return (
     <>
       <SubMenu
         icon={
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-          </svg>
-        }
-        label="Quality"
-      >
-        <MenuRadioGroup value={quality} onValueChange={(v) => onQualityChange?.(v as Quality)}>
-          {QUALITY_OPTIONS.map((opt) => (
-            <MenuRadioItem key={opt.value} value={opt.value} label={opt.label} checked={quality === opt.value} />
-          ))}
-        </MenuRadioGroup>
-      </SubMenu>
-
-      <SubMenu
-        icon={
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M12 5v14M5 12h14" />
           </svg>
         }
@@ -73,18 +51,13 @@ const PlayerActionsMenu = memo(function PlayerActionsMenu({
 
       <MenuDivider />
       <MenuItem
-        icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>}
+        icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>}
         label="Download"
         onClick={onDownload}
       />
-      <MenuItem
-        icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="6" width="20" height="12" rx="2" /><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8" /></svg>}
-        label="Keyboard shortcuts"
-        onClick={onShowShortcuts}
-      />
       <MenuDivider />
       <MenuItem
-        icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>}
+        icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>}
         label="Close player"
         onClick={onClosePlayer}
         danger
@@ -98,7 +71,6 @@ export function MusicPlayer({
   queue,
   quality,
   onClose,
-  onQualityChange,
   onPlayFromQueue,
   onPlayNextInQueue,
   onPlayPrevInQueue,
@@ -118,7 +90,6 @@ export function MusicPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [showShortcuts, setShowShortcuts] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const hlsRef = useRef<any>(null);
@@ -252,10 +223,6 @@ export function MusicPlayer({
           e.preventDefault();
           seekTo(100);
           break;
-        case "KeyH":
-          e.preventDefault();
-          setShowShortcuts((prev) => !prev);
-          break;
       }
     };
 
@@ -263,19 +230,13 @@ export function MusicPlayer({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [togglePlay, seek, seekTo]);
 
-  const handleTimeUpdate = () => {
-    if (!audioRef.current) return;
-    const nextTime = audioRef.current.currentTime;
-    // Reduce re-render churn while playing to keep hover-driven submenus stable.
-    setCurrentTime((prev) => (Math.abs(prev - nextTime) >= 0.25 ? nextTime : prev));
-  };
+  const handleTimeUpdate = useCallback(() => {
+    if (audioRef.current) setCurrentTime(audioRef.current.currentTime);
+  }, []);
 
-  const handleLoadedMetadata = () => {
-    if (audioRef.current) {
-      setDuration(audioRef.current.duration);
-      setIsLoading(false);
-    }
-  };
+  const handleLoadedMetadata = useCallback(() => {
+    if (audioRef.current) setDuration(audioRef.current.duration);
+  }, []);
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const time = parseFloat(e.target.value);
@@ -291,15 +252,6 @@ export function MusicPlayer({
     showToast("Download started", "Opened stream URL in a new tab");
   }, [streamUrl, showToast]);
 
-  const openShortcutsExpanded = useCallback(() => {
-    setShowShortcuts(true);
-    setIsExpanded(false);
-  }, []);
-
-  const openShortcutsMinimized = useCallback(() => {
-    setShowShortcuts(true);
-  }, []);
-
   const cycleRepeat = useCallback(() => {
     setRepeatMode((prev) => {
       const next = prev === 'off' ? 'track' : prev === 'track' ? 'queue' : 'off';
@@ -308,15 +260,6 @@ export function MusicPlayer({
       return next;
     });
   }, [showToast]);
-
-  const handleQualityChange = useCallback(
-    (nextQuality: Quality) => {
-      onQualityChange?.(nextQuality);
-      const selected = QUALITY_OPTIONS.find((option) => option.value === nextQuality);
-      showToast("Stream quality changed", selected?.label || nextQuality);
-    },
-    [onQualityChange, showToast]
-  );
 
   const toggleLikeSong = useCallback(async () => {
     if (isLikeBusy) return;
@@ -355,8 +298,8 @@ export function MusicPlayer({
 
   if (!streamUrl) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-surface border-t border-border p-4">
-        <div className="max-w-4xl mx-auto text-center text-text-secondary">
+      <div className="fixed bottom-0 left-0 right-0 bg-surface border-t-2 border-border p-4 shadow-brutal">
+        <div className="max-w-4xl mx-auto text-center font-bold text-text-secondary uppercase tracking-wide">
           No streaming URL available
         </div>
       </div>
@@ -375,13 +318,13 @@ export function MusicPlayer({
 
       {/* Expanded drawer */}
       <div
-        className={`fixed inset-x-0 bottom-0 bg-surface border-t border-border shadow-elevated z-50 transform transition-transform duration-300 ${
+        className={`fixed inset-x-0 bottom-0 bg-surface border-t-2 border-border shadow-brutal-lg z-50 transform transition-transform duration-300 ${
           isExpanded ? "translate-y-0" : "translate-y-full"
         }`}
         style={{ height: "80vh" }}
       >
         <div className="flex justify-center pt-4">
-          <div className="w-12 h-1 bg-surface-elevated rounded-full" />
+          <div className="w-12 h-1 bg-border rounded-full" />
         </div>
 
         <div className="h-full flex flex-row max-w-5xl mx-auto px-6 py-4 gap-6">
@@ -393,10 +336,7 @@ export function MusicPlayer({
                 <ActionsDropdown side="bottom">
                   <PlayerActionsMenu
                     song={song}
-                    quality={quality}
-                    onQualityChange={handleQualityChange}
                     onDownload={handleDownload}
-                    onShowShortcuts={openShortcutsExpanded}
                     onClosePlayer={onClose}
                   />
                 </ActionsDropdown>
@@ -405,7 +345,7 @@ export function MusicPlayer({
                   className="p-2 text-text-muted hover:text-text-primary transition-colors"
                   title="Collapse"
                 >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path d="M6 9l6 6 6-6" />
                   </svg>
                 </button>
@@ -417,20 +357,20 @@ export function MusicPlayer({
               <img
                 src={song.thumbnail.large}
                 alt={song.title}
-                className="w-64 h-64 rounded-xl object-cover shadow-elevated"
+                className="w-64 h-64 border-2 border-border object-cover shadow-brutal"
               />
             </div>
 
             {/* Song info */}
             <div className="text-center mb-6">
-              <h3 className="text-lg font-semibold text-text-primary truncate mb-1">{song.title}</h3>
+              <h3 className="text-lg font-bold text-text-primary truncate mb-1">{song.title}</h3>
               <p className="text-sm text-text-secondary truncate">{song.artists}</p>
             </div>
 
             {/* Progress bar */}
             <div className="mb-6">
               <div className="flex items-center gap-3 mb-2">
-                <span className="text-xs text-text-muted font-mono w-10">{formatTime(currentTime)}</span>
+                <span className="text-xs text-text-muted font-mono font-bold w-10">{formatTime(currentTime)}</span>
                 <div className="flex-1 relative group">
                   <input
                     type="range"
@@ -438,18 +378,20 @@ export function MusicPlayer({
                     max={duration || 100}
                     value={currentTime}
                     onChange={handleSeek}
-                    className="w-full h-2 bg-surface-elevated rounded-full appearance-none cursor-pointer
+                    className="w-full h-2 bg-surface-elevated appearance-none cursor-pointer border border-border
                       [&::-webkit-slider-thumb]:appearance-none
                       [&::-webkit-slider-thumb]:w-4
                       [&::-webkit-slider-thumb]:h-4
                       [&::-webkit-slider-thumb]:bg-primary
-                      [&::-webkit-slider-thumb]:rounded-full
+                      [&::-webkit-slider-thumb]:border-2
+                      [&::-webkit-slider-thumb]:border-border
+                      [&::-webkit-slider-thumb]:rounded-none
                       [&::-webkit-slider-thumb]:transition-transform
                       [&::-webkit-slider-thumb]:duration-200
                       group-hover:[&::-webkit-slider-thumb]:scale-125"
                   />
                 </div>
-                <span className="text-xs text-text-muted font-mono w-10 text-right">{formatTime(duration)}</span>
+                <span className="text-xs text-text-muted font-mono font-bold w-10 text-right">{formatTime(duration)}</span>
               </div>
             </div>
 
@@ -475,7 +417,7 @@ export function MusicPlayer({
                 <button
                   onClick={toggleLikeSong}
                   disabled={isLikeBusy}
-                  className={`p-2 transition-all duration-200 ${isLiked ? 'text-purple-400 hover:text-purple-300' : 'text-text-muted hover:text-text-primary'}`}
+                  className={`p-2 transition-all duration-200 ${isLiked ? 'text-pink-500 hover:text-pink-400' : 'text-text-muted hover:text-text-primary'}`}
                   title={isLiked ? 'Remove from favorites' : 'Add to favorites'}
                   key={heartPopKey}
                 >
@@ -494,7 +436,7 @@ export function MusicPlayer({
                   title={repeatMode === 'off' ? 'Repeat: Off' : repeatMode === 'track' ? 'Repeat: Current song' : 'Repeat: Queue'}
                 >
                   {repeatMode === 'track' ? (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <path d="M17 1l4 4-4 4" />
                       <path d="M3 11V9a4 4 0 0 1 4-4h14" />
                       <path d="M7 23l-4-4 4-4" />
@@ -502,7 +444,7 @@ export function MusicPlayer({
                       <text x="12" y="16" textAnchor="middle" fontSize="8" fill="currentColor" stroke="none" fontWeight="bold">1</text>
                     </svg>
                   ) : (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <path d="M17 1l4 4-4 4" />
                       <path d="M3 11V9a4 4 0 0 1 4-4h14" />
                       <path d="M7 23l-4-4 4-4" />
@@ -516,18 +458,18 @@ export function MusicPlayer({
               <button
                 onClick={togglePlay}
                 disabled={isLoading}
-                className="w-14 h-14 rounded-full bg-primary flex items-center justify-center transition-all duration-200 transform disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95"
+                className="w-14 h-14 border-2 border-border bg-primary flex items-center justify-center transition-all duration-100 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-brutal hover:-translate-x-[1px] hover:-translate-y-[1px] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
                 title="Play/Pause (Space)"
               >
                 {isLoading ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-border/30 border-t-border rounded-full animate-spin" />
                 ) : isPlaying ? (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="#1A1A1A">
                     <rect x="6" y="4" width="4" height="16" rx="1" />
                     <rect x="14" y="4" width="4" height="16" rx="1" />
                   </svg>
                 ) : (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="#1A1A1A">
                     <path d="M8 5v14l11-7z" />
                   </svg>
                 )}
@@ -555,15 +497,15 @@ export function MusicPlayer({
           </div>
 
           {/* Right: Queue panel */}
-          <div className="w-72 shrink-0 flex flex-col border-l border-border pl-6">
+          <div className="w-72 shrink-0 flex flex-col border-l-2 border-border pl-6">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-semibold text-text-primary">Queue</h4>
+              <h4 className="text-sm font-bold text-text-primary uppercase tracking-wide">Queue</h4>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-text-muted">{queue.length} songs</span>
+                <span className="text-xs text-text-muted font-mono font-bold">{queue.length} songs</span>
                 {queue.length > 0 && (
                   <button
                     onClick={onClearQueue}
-                    className="text-xs text-text-secondary hover:text-text-primary transition-colors"
+                    className="text-xs font-bold text-error hover:text-error/80 uppercase tracking-wide"
                     title="Clear queue (keeps current song)"
                   >
                     Clear
@@ -573,7 +515,7 @@ export function MusicPlayer({
             </div>
             <div className="flex-1 overflow-y-auto pr-1 space-y-1.5 min-h-0">
               {queue.length === 0 ? (
-                <div className="text-center text-text-muted text-sm py-8">No songs in queue</div>
+                <div className="text-center text-text-muted text-sm font-bold uppercase py-8">No songs in queue</div>
               ) : (
                 queue.map((queuedSong) => {
                   const isCurrent = queuedSong.id === song.id
@@ -581,19 +523,26 @@ export function MusicPlayer({
                     <button
                       key={queuedSong.id}
                       onClick={() => onPlayFromQueue(queuedSong)}
-                      className={`w-full text-left flex items-center gap-2.5 p-2 rounded-lg transition-colors ${
+                      className={`w-full text-left flex items-center gap-2.5 p-2 border-2 transition-all duration-100 ${
                         isCurrent
-                          ? "bg-primary/15 border border-primary/40"
-                          : "bg-surface-elevated hover:bg-surface"
+                          ? "border-primary bg-primary/15 shadow-brutal-sm"
+                          : "border-border bg-surface hover:border-primary hover:shadow-brutal-sm"
                       }`}
                     >
+                      {isCurrent && (
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <span className="w-0.5 h-3 bg-primary rounded-full animate-pulse" />
+                          <span className="w-0.5 h-4 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.15s' }} />
+                          <span className="w-0.5 h-2 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.3s' }} />
+                        </div>
+                      )}
                       <img
                         src={queuedSong.thumbnail.small}
                         alt={queuedSong.title}
-                        className="w-8 h-8 rounded object-cover flex-shrink-0"
+                        className={`w-8 h-8 border object-cover flex-shrink-0 ${isCurrent ? 'border-primary' : 'border-border'}`}
                       />
                       <div className="min-w-0 flex-1">
-                        <p className={`text-xs truncate ${isCurrent ? "text-primary font-medium" : "text-text-primary"}`}>
+                        <p className={`text-xs truncate font-bold ${isCurrent ? "text-primary" : "text-text-primary"}`}>
                           {queuedSong.title}
                         </p>
                         <p className="text-[11px] text-text-secondary truncate">{queuedSong.artists}</p>
@@ -607,7 +556,7 @@ export function MusicPlayer({
                           className="p-1 text-text-muted hover:text-text-primary transition-colors"
                           title="Move up"
                         >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                             <path d="M18 15l-6-6-6 6" />
                           </svg>
                         </button>
@@ -619,7 +568,7 @@ export function MusicPlayer({
                           className="p-1 text-text-muted hover:text-text-primary transition-colors"
                           title="Move down"
                         >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                             <path d="M6 9l6 6 6-6" />
                           </svg>
                         </button>
@@ -631,7 +580,7 @@ export function MusicPlayer({
                           className="p-1 text-text-muted hover:text-error transition-colors"
                           title="Remove from queue"
                         >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                             <line x1="18" y1="6" x2="6" y2="18" />
                             <line x1="6" y1="6" x2="18" y2="18" />
                           </svg>
@@ -647,34 +596,10 @@ export function MusicPlayer({
         </div>
 
         {/* Keyboard shortcuts help */}
-        {showShortcuts && (
-          <div className="absolute inset-0 bg-surface/95 flex items-center justify-center z-50">
-            <div className="bg-surface-elevated border border-border rounded-card p-4 shadow-elevated max-w-xs w-full mx-4">
-              <div className="text-xs text-text-primary space-y-1">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="font-semibold text-text-secondary">Keyboard Shortcuts</p>
-                  <button onClick={() => setShowShortcuts(false)} className="text-text-muted hover:text-text-primary">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                  <div className="flex items-center gap-2"><kbd className="px-1.5 py-0.5 bg-surface rounded text-[10px]">Space</kbd><span className="text-text-muted">Play/Pause</span></div>
-                  <div className="flex items-center gap-2"><kbd className="px-1.5 py-0.5 bg-surface rounded text-[10px]">←</kbd><span className="text-text-muted">Back 10s</span></div>
-                  <div className="flex items-center gap-2"><kbd className="px-1.5 py-0.5 bg-surface rounded text-[10px]">→</kbd><span className="text-text-muted">Forward 10s</span></div>
-                  <div className="flex items-center gap-2"><kbd className="px-1.5 py-0.5 bg-surface rounded text-[10px]">↑</kbd><span className="text-text-muted">Forward 30s</span></div>
-                  <div className="flex items-center gap-2"><kbd className="px-1.5 py-0.5 bg-surface rounded text-[10px]">↓</kbd><span className="text-text-muted">Back 30s</span></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Minimized player bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur-md border-t border-border shadow-elevated">
+      <div className="fixed bottom-0 left-0 right-0 bg-surface border-t-2 border-border shadow-brutal">
         <div className="max-w-4xl mx-auto px-3 py-2 sm:px-4 sm:py-3">
           {/* Row 1: corners (song info left, actions right) */}
           <div className="flex items-start justify-between gap-2 sm:gap-3 mb-2 sm:mb-3">
@@ -682,10 +607,10 @@ export function MusicPlayer({
               <img
                 src={song.thumbnail.small}
                 alt={song.title}
-                className="w-8 h-8 sm:w-10 sm:h-10 rounded-md object-cover flex-shrink-0"
+                className="w-8 h-8 sm:w-10 sm:h-10 border-2 border-border object-cover flex-shrink-0"
               />
               <div className="min-w-0">
-                <h4 className="text-xs sm:text-sm font-medium text-text-primary truncate">{song.title}</h4>
+                <h4 className="text-xs sm:text-sm font-bold text-text-primary truncate">{song.title}</h4>
                 <p className="hidden min-[380px]:block text-[11px] sm:text-xs text-text-muted truncate">{song.artists}</p>
               </div>
             </div>
@@ -694,14 +619,14 @@ export function MusicPlayer({
               <button
                 onClick={toggleLikeSong}
                 disabled={isLikeBusy}
-                className={`p-1 sm:p-1.5 transition-all duration-200 ${isLiked ? 'text-purple-400 hover:text-purple-300' : 'text-text-muted hover:text-text-primary'}`}
+                className={`p-1 sm:p-1.5 transition-all duration-200 ${isLiked ? 'text-pink-500 hover:text-pink-400' : 'text-text-muted hover:text-text-primary'}`}
                 title={isLiked ? 'Remove from favorites' : 'Add to favorites'}
                 key={`mini-${heartPopKey}`}
               >
                 <svg
                   width="16" height="16" viewBox="0 0 24 24"
                   fill={isLiked ? 'currentColor' : 'none'}
-                  stroke="currentColor" strokeWidth="2"
+                  stroke="currentColor" strokeWidth="2.5"
                   className={`sm:w-[18px] sm:h-[18px] ${isLiked ? 'animate-heart-pop' : ''}`}
                 >
                   <path d="M12 21s-7-4.35-9.33-8.11C.5 9.34 2.42 5 6.5 5c2.16 0 3.44 1.23 4.2 2.36C11.46 6.23 12.84 5 15 5c4.08 0 6 4.34 3.83 7.89C16.5 16.65 12 21 12 21z" />
@@ -713,7 +638,7 @@ export function MusicPlayer({
                 title={repeatMode === 'off' ? 'Repeat: Off' : repeatMode === 'track' ? 'Repeat: Current song' : 'Repeat: Queue'}
               >
                 {repeatMode === 'track' ? (
-                  <svg width="16" height="16" className="sm:w-[18px] sm:h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg width="16" height="16" className="sm:w-[18px] sm:h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path d="M17 1l4 4-4 4" />
                     <path d="M3 11V9a4 4 0 0 1 4-4h14" />
                     <path d="M7 23l-4-4 4-4" />
@@ -721,7 +646,7 @@ export function MusicPlayer({
                     <text x="12" y="16" textAnchor="middle" fontSize="8" fill="currentColor" stroke="none" fontWeight="bold">1</text>
                   </svg>
                 ) : (
-                  <svg width="16" height="16" className="sm:w-[18px] sm:h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg width="16" height="16" className="sm:w-[18px] sm:h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path d="M17 1l4 4-4 4" />
                     <path d="M3 11V9a4 4 0 0 1 4-4h14" />
                     <path d="M7 23l-4-4 4-4" />
@@ -732,10 +657,7 @@ export function MusicPlayer({
               <ActionsDropdown side="top">
                 <PlayerActionsMenu
                   song={song}
-                  quality={quality}
-                  onQualityChange={handleQualityChange}
                   onDownload={handleDownload}
-                  onShowShortcuts={openShortcutsMinimized}
                   onClosePlayer={onClose}
                 />
               </ActionsDropdown>
@@ -745,7 +667,7 @@ export function MusicPlayer({
                 className="p-0.5 sm:p-1 text-text-secondary hover:text-text-primary transition-colors"
                 title={isExpanded ? "Collapse" : "Expand"}
               >
-                <svg width="18" height="18" className="sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="18" height="18" className="sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M18 15l-6-6-6 6" />
                 </svg>
               </button>
@@ -763,18 +685,18 @@ export function MusicPlayer({
             <button
               onClick={togglePlay}
               disabled={isLoading}
-              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary flex items-center justify-center transition-all duration-200 transform disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95"
+              className="w-10 h-10 sm:w-12 sm:h-12 border-2 border-border bg-primary flex items-center justify-center transition-all duration-100 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-brutal-sm hover:-translate-x-[1px] hover:-translate-y-[1px] active:shadow-none active:translate-x-[1px] active:translate-y-[1px]"
               title="Play/Pause (Space)"
             >
               {isLoading ? (
-                <div className="w-4 h-4 sm:w-[18px] sm:h-[18px] border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-4 h-4 sm:w-[18px] sm:h-[18px] border-2 border-border/30 border-t-border rounded-full animate-spin" />
               ) : isPlaying ? (
-                <svg width="16" height="16" className="sm:w-[18px] sm:h-[18px]" viewBox="0 0 24 24" fill="white">
+                <svg width="16" height="16" className="sm:w-[18px] sm:h-[18px]" viewBox="0 0 24 24" fill="#1A1A1A">
                   <rect x="6" y="4" width="4" height="16" rx="1" />
                   <rect x="14" y="4" width="4" height="16" rx="1" />
                 </svg>
               ) : (
-                <svg width="16" height="16" className="sm:w-[18px] sm:h-[18px]" viewBox="0 0 24 24" fill="white">
+                <svg width="16" height="16" className="sm:w-[18px] sm:h-[18px]" viewBox="0 0 24 24" fill="#1A1A1A">
                   <path d="M8 5v14l11-7z" />
                 </svg>
               )}
@@ -787,7 +709,7 @@ export function MusicPlayer({
             </button>
 
             <div className="flex-1 flex items-center gap-1.5 sm:gap-2 min-w-0">
-              <span className="text-[10px] sm:text-xs text-text-muted font-mono w-8 sm:w-9 text-right">{formatTime(currentTime)}</span>
+              <span className="text-[10px] sm:text-xs text-text-muted font-mono font-bold w-8 sm:w-9 text-right">{formatTime(currentTime)}</span>
               <div className="flex-1 relative group">
                 <input
                   type="range"
@@ -795,20 +717,22 @@ export function MusicPlayer({
                   max={duration || 100}
                   value={currentTime}
                   onChange={handleSeek}
-                  className="w-full h-1.5 bg-surface-elevated rounded-full appearance-none cursor-pointer
+                  className="w-full h-1.5 bg-surface-elevated appearance-none cursor-pointer border border-border
                     [&::-webkit-slider-thumb]:appearance-none
                     [&::-webkit-slider-thumb]:w-3
                     [&::-webkit-slider-thumb]:h-3
                     sm:[&::-webkit-slider-thumb]:w-3.5
                     sm:[&::-webkit-slider-thumb]:h-3.5
                     [&::-webkit-slider-thumb]:bg-primary
-                    [&::-webkit-slider-thumb]:rounded-full
+                    [&::-webkit-slider-thumb]:border-2
+                    [&::-webkit-slider-thumb]:border-border
+                    [&::-webkit-slider-thumb]:rounded-none
                     [&::-webkit-slider-thumb]:transition-transform
                     [&::-webkit-slider-thumb]:duration-200
                     group-hover:[&::-webkit-slider-thumb]:scale-125"
                 />
               </div>
-              <span className="text-[10px] sm:text-xs text-text-muted font-mono w-8 sm:w-9">{formatTime(duration)}</span>
+              <span className="text-[10px] sm:text-xs text-text-muted font-mono font-bold w-8 sm:w-9">{formatTime(duration)}</span>
             </div>
           </div>
         </div>

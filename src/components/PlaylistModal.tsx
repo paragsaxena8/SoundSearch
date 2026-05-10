@@ -3,17 +3,21 @@
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { usePlaylist, storedSongToSong } from '@/lib/playlist'
+import { ActionsDropdown, MenuItem, MenuDivider } from './ActionsDropdown'
 import type { Song } from '@/lib/gaana'
 import type { Quality } from '@/lib/config'
+import { QUALITY_TO_MUSIC_KEY } from '@/lib/config'
 
 interface PlaylistModalProps {
   isOpen: boolean
   onClose: () => void
   onPlaySong: (song: Song, quality: Quality) => void
+  onAddToQueue?: (song: Song) => void
   initialPlaylistId?: string | null
+  defaultQuality?: Quality
 }
 
-export function PlaylistModal({ isOpen, onClose, onPlaySong, initialPlaylistId }: PlaylistModalProps) {
+export function PlaylistModal({ isOpen, onClose, onPlaySong, onAddToQueue, initialPlaylistId, defaultQuality = 'high' }: PlaylistModalProps) {
   const { playlists, isLoading, createNewPlaylist, removePlaylist, getSongs } = usePlaylist()
   const [selectedPlaylist, setSelectedPlaylist] = useState<string | null>(initialPlaylistId ?? null)
   const [songs, setSongs] = useState<{ id: string; title: string; artists: string; thumbnail: { small: string } }[]>([])
@@ -50,42 +54,57 @@ export function PlaylistModal({ isOpen, onClose, onPlaySong, initialPlaylistId }
     }
   }
 
+  const toSong = (storedSong: { id: string; title: string; artists: string; thumbnail: { small: string }; musicUrl: string }): Song => ({
+    id: storedSong.id,
+    title: storedSong.title,
+    artists: storedSong.artists,
+    album: '',
+    duration: '',
+    language: '',
+    music: {
+      very_high: storedSong.musicUrl,
+      high: storedSong.musicUrl,
+      medium: storedSong.musicUrl,
+      low: storedSong.musicUrl,
+    },
+    thumbnail: { large: '', medium: '', small: storedSong.thumbnail.small },
+  })
+
   const handlePlaySong = (storedSong: { id: string; title: string; artists: string; thumbnail: { small: string }; musicUrl: string }) => {
-    const song: Song = {
-      id: storedSong.id,
-      title: storedSong.title,
-      artists: storedSong.artists,
-      album: '',
-      duration: '',
-      language: '',
-      music: {
-        very_high: storedSong.musicUrl,
-        high: storedSong.musicUrl,
-        medium: storedSong.musicUrl,
-        low: storedSong.musicUrl,
-      },
-      thumbnail: { large: '', medium: '', small: storedSong.thumbnail.small },
-    }
-    onPlaySong(song, 'high')
+    const song = toSong(storedSong)
+    onPlaySong(song, defaultQuality)
+  }
+
+  const handleAddToQueue = (storedSong: { id: string; title: string; artists: string; thumbnail: { small: string }; musicUrl: string }) => {
+    if (!onAddToQueue) return
+    const song = toSong(storedSong)
+    onAddToQueue(song)
+  }
+
+  const handleDownload = (storedSong: { id: string; title: string; artists: string; thumbnail: { small: string }; musicUrl: string }) => {
+    const song = toSong(storedSong)
+    const musicKey = QUALITY_TO_MUSIC_KEY[defaultQuality]
+    const url = song.music[musicKey] || song.music.high || song.music.medium || song.music.low
+    if (url) window.open(url, '_blank')
   }
 
   if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-surface rounded-card shadow-elevated w-full max-w-2xl max-h-[80vh] overflow-hidden animate-slide-up">
+      <div className="bg-surface border-2 border-border shadow-brutal-lg w-full max-w-2xl max-h-[80vh] overflow-hidden animate-slide-up">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <h2 className="text-lg font-semibold text-text-primary">
+        <div className="flex items-center justify-between p-4 border-b-2 border-border">
+          <h2 className="text-lg font-bold text-text-primary uppercase tracking-wide">
             {selectedPlaylist
               ? playlists.find(p => p.id === selectedPlaylist)?.name ?? 'Playlist'
               : 'My Playlists'}
           </h2>
           <button
             onClick={onClose}
-            className="p-2 text-text-secondary hover:text-error transition-colors rounded-lg hover:bg-error/10"
+            className="p-2 text-text-secondary hover:text-error transition-colors border-2 border-transparent hover:border-error"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -95,51 +114,89 @@ export function PlaylistModal({ isOpen, onClose, onPlaySong, initialPlaylistId }
         {/* Content */}
         <div className="p-4 overflow-y-auto max-h-[60vh]">
           {isLoading ? (
-            <div className="text-center text-text-muted py-8">Loading...</div>
+            <div className="text-center text-text-muted font-bold uppercase py-8">Loading...</div>
           ) : selectedPlaylist ? (
             /* Songs in playlist */
             <div className="space-y-2">
               <button
                 onClick={() => setSelectedPlaylist(null)}
-                className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors mb-4"
+                className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors mb-4 font-bold"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M19 12H5M12 19l-7-7 7-7" />
                 </svg>
                 Back to playlists
               </button>
 
               {songs.length === 0 ? (
-                <div className="text-center text-text-muted py-8">No songs in this playlist</div>
+                <div className="text-center text-text-muted font-bold uppercase py-8">No songs in this playlist</div>
               ) : (
                 songs.map((song) => (
                   <div
                     key={song.id}
-                    className="flex items-center gap-3 p-2 bg-surface-elevated rounded-lg hover:bg-surface transition-colors"
+                    className="flex items-center gap-3 p-2 border-2 border-border bg-surface-elevated hover:border-primary transition-colors"
                   >
                     <img
                       src={song.thumbnail.small}
                       alt={song.title}
-                      className="w-10 h-10 rounded object-cover"
+                      className="w-10 h-10 border border-border object-cover"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-text-primary truncate">{song.title}</p>
+                      <p className="text-sm font-bold text-text-primary truncate">{song.title}</p>
                       <p className="text-xs text-text-secondary truncate">{song.artists}</p>
                     </div>
-                    <button
-                      onClick={() => handlePlaySong({
-                        id: song.id,
-                        title: song.title,
-                        artists: song.artists,
-                        thumbnail: song.thumbnail,
-                        musicUrl: (song as any).musicUrl || '',
-                      })}
-                      className="w-8 h-8 rounded-full bg-primary flex items-center justify-center hover:scale-110 transition-transform"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handlePlaySong({
+                          id: song.id,
+                          title: song.title,
+                          artists: song.artists,
+                          thumbnail: song.thumbnail,
+                          musicUrl: (song as any).musicUrl || '',
+                        })}
+                        className="w-8 h-8 border-2 border-border bg-primary flex items-center justify-center hover:shadow-brutal-sm hover:-translate-x-[1px] hover:-translate-y-[1px] active:shadow-none active:translate-x-[1px] active:translate-y-[1px] transition-all"
+                        title="Play"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="#1A1A1A">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </button>
+                      <ActionsDropdown>
+                        {onAddToQueue && (
+                          <MenuItem
+                            icon={
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <path d="M12 5v14M5 12h14" />
+                              </svg>
+                            }
+                            label="Add to queue"
+                            onClick={() => handleAddToQueue({
+                              id: song.id,
+                              title: song.title,
+                              artists: song.artists,
+                              thumbnail: song.thumbnail,
+                              musicUrl: (song as any).musicUrl || '',
+                            })}
+                          />
+                        )}
+                        <MenuDivider />
+                        <MenuItem
+                          icon={
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                            </svg>
+                          }
+                          label="Download"
+                          onClick={() => handleDownload({
+                            id: song.id,
+                            title: song.title,
+                            artists: song.artists,
+                            thumbnail: song.thumbnail,
+                            musicUrl: (song as any).musicUrl || '',
+                          })}
+                        />
+                      </ActionsDropdown>
+                    </div>
                   </div>
                 ))
               )}
@@ -155,7 +212,7 @@ export function PlaylistModal({ isOpen, onClose, onPlaySong, initialPlaylistId }
                     value={newPlaylistName}
                     onChange={(e) => setNewPlaylistName(e.target.value)}
                     placeholder="Playlist name"
-                    className="flex-1 bg-surface-elevated text-text-primary text-sm px-3 py-2 rounded-lg border border-border outline-none focus:border-primary"
+                    className="flex-1 bg-surface-elevated text-text-primary text-sm font-medium px-3 py-2 border-2 border-border outline-none focus:border-primary"
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleCreatePlaylist()
@@ -168,7 +225,7 @@ export function PlaylistModal({ isOpen, onClose, onPlaySong, initialPlaylistId }
                   <button
                     onClick={handleCreatePlaylist}
                     disabled={!newPlaylistName.trim() || isCreating}
-                    className="px-4 py-2 bg-primary text-white text-sm rounded-lg disabled:opacity-50"
+                    className="px-4 py-2 bg-primary text-border text-sm font-bold border-2 border-border disabled:opacity-50 hover:shadow-brutal-sm hover:-translate-x-[1px] hover:-translate-y-[1px] active:shadow-none active:translate-x-[1px] active:translate-y-[1px] transition-all"
                   >
                     Create
                   </button>
@@ -176,9 +233,9 @@ export function PlaylistModal({ isOpen, onClose, onPlaySong, initialPlaylistId }
               ) : (
                 <button
                   onClick={() => setIsCreating(true)}
-                  className="w-full p-3 border-2 border-dashed border-border rounded-lg text-text-secondary hover:text-primary hover:border-primary transition-colors flex items-center justify-center gap-2"
+                  className="w-full p-3 border-2 border-dashed border-border text-text-secondary hover:text-primary hover:border-primary transition-colors flex items-center justify-center gap-2 font-bold uppercase tracking-wide"
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path d="M12 5v14M5 12h14" />
                   </svg>
                   Create new playlist
@@ -187,7 +244,7 @@ export function PlaylistModal({ isOpen, onClose, onPlaySong, initialPlaylistId }
 
               {/* Playlist items */}
               {playlists.length === 0 && !isCreating && (
-                <div className="text-center text-text-muted py-8">
+                <div className="text-center text-text-muted font-bold uppercase py-8">
                   No playlists yet. Create one to save your favorite songs!
                 </div>
               )}
@@ -195,19 +252,19 @@ export function PlaylistModal({ isOpen, onClose, onPlaySong, initialPlaylistId }
               {playlists.map((playlist) => (
                 <div
                   key={playlist.id}
-                  className="flex items-center gap-3 p-3 bg-surface-elevated rounded-lg hover:bg-surface transition-colors cursor-pointer group"
+                  className="flex items-center gap-3 p-3 border-2 border-border bg-surface-elevated hover:border-primary transition-colors cursor-pointer group"
                   onClick={() => handleSelectPlaylist(playlist.id)}
                 >
-                  <div className="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center">
+                  <div className="w-12 h-12 bg-primary/20 border-2 border-border flex items-center justify-center">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-primary">
-                      <path d="M9 18V5l12-2v13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      <circle cx="6" cy="18" r="3" stroke="currentColor" strokeWidth="2" />
-                      <circle cx="18" cy="16" r="3" stroke="currentColor" strokeWidth="2" />
+                      <path d="M9 18V5l12-2v13" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      <circle cx="6" cy="18" r="3" stroke="currentColor" strokeWidth="2.5" />
+                      <circle cx="18" cy="16" r="3" stroke="currentColor" strokeWidth="2.5" />
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-text-primary truncate">{playlist.name}</p>
-                    <p className="text-xs text-text-muted">{playlist.songIds.length} songs</p>
+                    <p className="text-sm font-bold text-text-primary truncate">{playlist.name}</p>
+                    <p className="text-xs text-text-muted font-mono">{playlist.songIds.length} songs</p>
                   </div>
                   <button
                     onClick={(e) => {
@@ -218,7 +275,7 @@ export function PlaylistModal({ isOpen, onClose, onPlaySong, initialPlaylistId }
                     }}
                     className="p-2 text-text-muted hover:text-error transition-colors opacity-0 group-hover:opacity-100"
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
                     </svg>
                   </button>

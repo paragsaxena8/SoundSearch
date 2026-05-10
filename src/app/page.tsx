@@ -5,6 +5,7 @@ import { Navbar, SearchBar, SongCard, FeatureCard, LoadingSkeleton, EmptyState, 
 import { CacheProvider, useSearchCache, useCache } from '@/lib/cache'
 import { PlaylistProvider, usePlaylist } from '@/lib/playlist'
 import { ToastProvider, useToast } from '@/lib/toast'
+import { SettingsProvider, useSettings } from '@/lib/settings'
 import type { Song } from '@/lib/gaana'
 import type { LimitOption } from '@/types'
 import type { Quality } from '@/lib/config'
@@ -14,9 +15,10 @@ function SearchPage() {
   const { playlists } = usePlaylist()
   const { getNowPlaying, getRecentPlays, setNowPlaying, clearNowPlaying, addRecentPlay, getRecentSearches, addRecentSearch, clearRecentSearches } = useCache()
   const { showToast } = useToast()
+  const { defaultLimit, defaultQuality } = useSettings()
   const [currentSong, setCurrentSong] = useState<Song | null>(null)
   const [queue, setQueue] = useState<Song[]>([])
-  const [currentQuality, setCurrentQuality] = useState<Quality>('high')
+  const [currentQuality, setCurrentQuality] = useState<Quality>(defaultQuality)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState(false)
   const [openPlaylistId, setOpenPlaylistId] = useState<string | null>(null)
@@ -177,14 +179,14 @@ function SearchPage() {
         <Navbar onOpenPlaylists={() => { setOpenPlaylistId(null); setIsPlaylistModalOpen(true) }} />
 
         <main className="flex flex-col items-center px-6 py-16">
-          <h1 className="text-[28px] font-bold text-text-primary tracking-[-0.02em]">
+          <h1 className="text-[28px] font-bold text-text-primary uppercase tracking-wide">
             Find your music
           </h1>
-          <p className="text-base text-text-secondary mt-2 mb-8">
+          <p className="text-base text-text-secondary mt-2 mb-8 font-mono">
             Search millions of songs from Gaana
           </p>
 
-          <SearchBar onSearch={handleSearch} isLoading={isLoading} recentSearches={getRecentSearches()} onClearRecentSearches={clearRecentSearches} />
+          <SearchBar onSearch={handleSearch} isLoading={isLoading} recentSearches={getRecentSearches()} onClearRecentSearches={clearRecentSearches} defaultLimit={defaultLimit} />
         </main>
 
         <section className="px-6 pb-16">
@@ -199,7 +201,7 @@ function SearchPage() {
           )}
 
           {isLoading ? (
-            <LoadingSkeleton count={5} />
+            <LoadingSkeleton />
           ) : error ? (
             <ErrorState message={error} />
           ) : !hasSearched ? (
@@ -210,14 +212,14 @@ function SearchPage() {
             <div className="max-w-4xl mx-auto space-y-6">
               {/* Featured song */}
               {featuredSong && (
-                <FeatureCard song={featuredSong} onPlay={handlePlay} onAddToQueue={handleAddToQueue} />
+                <FeatureCard song={featuredSong} onPlay={handlePlay} onAddToQueue={handleAddToQueue} defaultQuality={defaultQuality} />
               )}
 
               {/* Rest as list */}
               {restSongs.length > 0 && (
                 <div className="space-y-3">
                   {restSongs.map((song) => (
-                    <SongCard key={song.id} song={song} onPlay={handlePlay} onAddToQueue={handleAddToQueue} />
+                    <SongCard key={song.id} song={song} onPlay={handlePlay} onAddToQueue={handleAddToQueue} defaultQuality={defaultQuality} />
                   ))}
                 </div>
               )}
@@ -232,7 +234,6 @@ function SearchPage() {
           queue={queue}
           quality={currentQuality}
           onClose={handleClosePlayer}
-          onQualityChange={setCurrentQuality}
           onPlayFromQueue={handlePlayFromQueue}
           onPlayNextInQueue={handlePlayNextInQueue}
           onPlayPrevInQueue={handlePlayPrevInQueue}
@@ -247,6 +248,8 @@ function SearchPage() {
         isOpen={isPlaylistModalOpen}
         onClose={() => { setIsPlaylistModalOpen(false); setOpenPlaylistId(null) }}
         onPlaySong={handlePlayFromPlaylist}
+        onAddToQueue={handleAddToQueue}
+        defaultQuality={defaultQuality}
         initialPlaylistId={openPlaylistId}
       />
     </div>
@@ -258,8 +261,10 @@ export default function Home() {
     <CacheProvider>
       <ToastProvider>
         <PlaylistProvider>
-          <SearchPage />
-          <Toaster />
+          <SettingsProvider>
+            <SearchPage />
+            <Toaster />
+          </SettingsProvider>
         </PlaylistProvider>
       </ToastProvider>
     </CacheProvider>

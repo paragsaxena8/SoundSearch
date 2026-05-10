@@ -9,35 +9,55 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        canvas: '#0f0f0f',
-        surface: '#1a1a1a',
-        'surface-elevated': '#222222',
+        canvas: '#FFFBEB',
+        surface: '#FFFFFF',
+        'surface-elevated': '#FEF3C7',
         primary: {
-          DEFAULT: '#0d9488',
-          hover: '#0f766e',
+          DEFAULT: '#EAB308',
+          hover: '#CA8A04',
         },
+        accent: '#FF6B35',
         text: {
-          primary: 'rgba(255, 255, 255, 0.9)',
-          secondary: 'rgba(255, 255, 255, 0.6)',
-          muted: 'rgba(255, 255, 255, 0.5)',
+          primary: '#1A1A1A',
+          secondary: '#4A4A4A',
+          muted: '#7A7A7A',
         },
         border: {
-          DEFAULT: 'rgba(255, 255, 255, 0.08)',
-          strong: 'rgba(255, 255, 255, 0.12)',
+          DEFAULT: '#1A1A1A',
+          strong: '#1A1A1A',
         },
-        error: '#ef4444',
+        error: '#DC2626',
+        neon: {
+          yellow: '#EAB308',
+          pink: '#EC4899',
+          blue: '#3B82F6',
+          green: '#22C55E',
+        },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Space Grotesk', 'system-ui', 'sans-serif'],
+        mono: ['Space Mono', 'monospace'],
       },
       borderRadius: {
-        card: '12px',
+        card: '4px',
         pill: '9999px',
+        brutal: '8px',
       },
       boxShadow: {
-        elevated:
-          'rgba(0, 0, 0, 0.3) 0 0 0 1px, rgba(0, 0, 0, 0.4) 0 2px 6px, rgba(0, 0, 0, 0.5) 0 4px 8px',
-        search: 'rgba(0, 0, 0, 0.2) 0 2px 8px',
+        elevated: '4px 4px 0px 0px #1A1A1A',
+        search: '3px 3px 0px 0px #1A1A1A',
+        brutal: '4px 4px 0px 0px #1A1A1A',
+        'brutal-sm': '2px 2px 0px 0px #1A1A1A',
+        'brutal-lg': '6px 6px 0px 0px #1A1A1A',
+        'brutal-hover': '6px 6px 0px 0px #1A1A1A',
+        'brutal-yellow': '4px 4px 0px 0px #EAB308',
+        'brutal-pink': '4px 4px 0px 0px #EC4899',
+        'brutal-neon': '4px 4px 0px 0px #22C55E',
+      },
+      borderWidth: {
+        DEFAULT: '1px',
+        brutal: '2px',
+        'brutal-thick': '3px',
       },
       animation: {
         shimmer: 'shimmer 1.5s ease-in-out infinite',
@@ -48,6 +68,7 @@ const config: Config = {
         'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
         'pulse-button': 'pulseButton 1s ease-in-out infinite',
         'heart-pop': 'heartPop 0.4s ease-out',
+        'wiggle': 'wiggle 0.3s ease-in-out',
       },
       keyframes: {
         shimmer: {
@@ -74,14 +95,19 @@ const config: Config = {
           '75%, 100%': { transform: 'scale(2)', opacity: '0' },
         },
         pulseButton: {
-          '0%, 100%': { boxShadow: '0 0 0 0 rgba(13, 148, 136, 0.4)' },
-          '50%': { boxShadow: '0 0 0 8px rgba(13, 148, 136, 0)' },
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(234, 179, 8, 0.4)' },
+          '50%': { boxShadow: '0 0 0 8px rgba(234, 179, 8, 0)' },
         },
         heartPop: {
           '0%': { transform: 'scale(1)' },
           '30%': { transform: 'scale(1.3)' },
           '60%': { transform: 'scale(0.95)' },
           '100%': { transform: 'scale(1)' },
+        },
+        wiggle: {
+          '0%, 100%': { transform: 'rotate(0deg)' },
+          '25%': { transform: 'rotate(-3deg)' },
+          '75%': { transform: 'rotate(3deg)' },
         },
       },
     },

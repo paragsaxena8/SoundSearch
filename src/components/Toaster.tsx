@@ -16,9 +16,9 @@ export function Toaster() {
           onOpenChange={(open) => {
             if (!open) dismissToast(toast.id)
           }}
-          className="rounded-card border border-border bg-surface px-4 py-3 shadow-elevated data-[state=open]:animate-slide-up"
+          className="border-2 border-border bg-surface px-4 py-3 shadow-brutal data-[state=open]:animate-slide-up"
         >
-          <Toast.Title className="text-sm font-medium text-text-primary">{toast.title}</Toast.Title>
+          <Toast.Title className="text-sm font-bold text-text-primary">{toast.title}</Toast.Title>
           {toast.description && (
             <Toast.Description className="mt-1 text-xs text-text-secondary">
               {toast.description}

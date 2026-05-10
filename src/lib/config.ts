@@ -31,13 +31,13 @@ export const QUALITY_TO_MUSIC_KEY: Record<Quality, 'low' | 'medium' | 'high' | '
 }
 
 
-// Language badge colors (hex values for inline styles)
+// Language badge colors — neon brutalism palette
 export const LANGUAGE_COLORS: Record<string, string> = {
-  English: '#0d9488', // primary teal
-  Hindi: '#22c55e', // green
-  Punjabi: '#f97316', // orange
-  Tamil: '#a855f7', // purple
-  Telugu: '#3b82f6', // blue
+  English: '#EAB308',  // neon yellow
+  Hindi: '#22C55E',   // neon green
+  Punjabi: '#FF6B35', // neon orange
+  Tamil: '#EC4899',    // neon pink
+  Telugu: '#3B82F6',  // neon blue
 } as const
 
-export const DEFAULT_LANGUAGE_COLOR = '#6b7280' // gray
+export const DEFAULT_LANGUAGE_COLOR = '#1A1A1A' // black for unknown
