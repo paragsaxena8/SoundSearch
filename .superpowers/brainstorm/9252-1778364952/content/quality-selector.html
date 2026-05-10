@@ -1,0 +1,44 @@
+<h2>How should the quality selector look?</h2>
+<p class="subtitle">Users pick audio quality (LOW / MED / HIGH / ULTRA) for each song</p>
+
+<div class="options">
+  <div class="option" data-choice="pills" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Segmented Pills</h3>
+      <p>Connected segments, one highlighted. Compact and clear.</p>
+      <div style="margin-top: 12px; display: flex; gap: 0; background: rgba(255,255,255,0.1); border-radius: 8px; padding: 4px;">
+        <div style="padding: 6px 16px; border-radius: 6px; font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.5);">LOW</div>
+        <div style="padding: 6px 16px; border-radius: 6px; font-size: 11px; font-weight: 600; background: #0d9488; color: white;">MED</div>
+        <div style="padding: 6px 16px; border-radius: 6px; font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.5);">HIGH</div>
+        <div style="padding: 6px 16px; border-radius: 6px; font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.5);">ULTRA</div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="buttons" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Individual Buttons</h3>
+      <p>Separate buttons with spacing. More tactile, easier to hit on mobile.</p>
+      <div style="margin-top: 12px; display: flex; gap: 8px;">
+        <div style="padding: 6px 14px; border-radius: 6px; font-size: 11px; font-weight: 600; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.7);">LOW</div>
+        <div style="padding: 6px 14px; border-radius: 6px; font-size: 11px; font-weight: 600; background: #0d9488; color: white;">MED</div>
+        <div style="padding: 6px 14px; border-radius: 6px; font-size: 11px; font-weight: 600; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.7);">HIGH</div>
+        <div style="padding: 6px 14px; border-radius: 6px; font-size: 11px; font-weight: 600; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.7);">ULTRA</div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="dropdown" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Dropdown Menu</h3>
+      <p>Expand on click/tap. Saves space, cleaner card layout.</p>
+      <div style="margin-top: 12px; display: flex; gap: 8px; align-items: center;">
+        <div style="padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; background: #0d9488; color: white; display: flex; align-items: center; gap: 6px;">
+          MED
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

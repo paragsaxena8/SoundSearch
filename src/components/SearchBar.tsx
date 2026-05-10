@@ -1,6 +1,8 @@
+'use client'
+
 import { useState } from 'react'
-import { cn } from '../lib/utils'
-import { LIMIT_OPTIONS, type LimitOption } from '../types/song'
+import { cn } from '@/lib/utils'
+import { LIMIT_OPTIONS, type LimitOption } from '@/types'
 
 interface SearchBarProps {
   onSearch: (query: string, limit: LimitOption) => void
@@ -9,7 +11,7 @@ interface SearchBarProps {
 
 export function SearchBar({ onSearch, isLoading }: SearchBarProps) {
   const [query, setQuery] = useState('')
-  const [limit, setLimit] = useState<LimitOption>(10)
+  const [limit, setLimit] = useState<LimitOption>(5)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

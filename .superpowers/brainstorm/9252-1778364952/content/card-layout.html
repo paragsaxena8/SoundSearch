@@ -1,0 +1,56 @@
+<h2>Song Card Layout</h2>
+<p class="subtitle">Does this card structure look right? Click to confirm or suggest changes in the terminal.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Song Card Preview</div>
+  <div class="mockup-body" style="background: #0f0f0f; padding: 20px;">
+    <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; width: 280px;">
+      <!-- Thumbnail with overlays -->
+      <div style="position: relative; aspect-ratio: 1;">
+        <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a2e, #16213e); display: flex; align-items: center; justify-content: center;">
+          <span style="color: rgba(255,255,255,0.3);">Album Art</span>
+        </div>
+        <!-- Duration badge (top-right) -->
+        <div style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 12px; font-size: 11px; color: white;">3:53</div>
+        <!-- Play button (center, on hover) -->
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 50px; height: 50px; background: rgba(13,148,136,0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+          <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <!-- Language badge (bottom-left) -->
+        <div style="position: absolute; bottom: 8px; left: 8px; background: #0d9488; padding: 4px 10px; border-radius: 12px; font-size: 11px; color: white; font-weight: 500;">English</div>
+        <!-- Gradient overlay (bottom) -->
+        <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 60px; background: linear-gradient(transparent, rgba(0,0,0,0.8));"></div>
+      </div>
+      <!-- Content -->
+      <div style="padding: 12px;">
+        <div style="font-weight: 600; color: white; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Shape of You</div>
+        <div style="color: rgba(255,255,255,0.6); font-size: 12px; margin-top: 4px;">Ed Sheeran</div>
+        <div style="color: rgba(255,255,255,0.5); font-size: 11px; font-style: italic; margin-top: 2px;">Shape of You</div>
+        <!-- Quality selector -->
+        <div style="display: flex; gap: 6px; margin-top: 12px;">
+          <div style="padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 600; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.6);">LOW</div>
+          <div style="padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 600; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.6);">MED</div>
+          <div style="padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 600; background: #0d9488; color: white; border: none;">HIGH</div>
+          <div style="padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 600; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.6);">ULTRA</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="options" style="margin-top: 20px;">
+  <div class="option" data-choice="perfect" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Looks Perfect</h3>
+      <p>Proceed with this layout</p>
+    </div>
+  </div>
+  <div class="option" data-choice="changes" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Need Changes</h3>
+      <p>I'll describe what to adjust in the terminal</p>
+    </div>
+  </div>
+</div>
