@@ -110,8 +110,8 @@ async function getTrackDetail(seoKey: string): Promise<Song | null> {
         music.high = baseUrl.replace('64.mp4', '128.mp4')
         music.medium = baseUrl
         music.low = baseUrl.replace('64.mp4', '16.mp4')
-      } catch {
-        // Decryption failed, leave empty
+      } catch (err) {
+        console.error('Decryption failed for track:', seoKey, err instanceof Error ? err.message : err)
       }
     }
 
@@ -123,8 +123,8 @@ async function getTrackDetail(seoKey: string): Promise<Song | null> {
         music.high = decrypted.replace('/64/', '/128/')
         music.very_high = decrypted.replace('/64/', '/320/')
         music.low = decrypted.replace('/64/', '/16/')
-      } catch {
-        // Leave empty
+      } catch (err) {
+        console.error('Secondary decryption failed for track:', seoKey, err instanceof Error ? err.message : err)
       }
     }
 

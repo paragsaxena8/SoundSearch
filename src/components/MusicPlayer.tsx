@@ -134,11 +134,26 @@ export function MusicPlayer({
 
       if (Hls.isSupported() && audioRef.current) {
         const hls = new Hls({
-          maxBufferLength: 30,
-          maxMaxBufferLength: 60,
-          maxBufferSize: 30 * 1024 * 1024,
+          maxBufferLength: 10,
+          maxMaxBufferLength: 30,
+          maxBufferSize: 5 * 1024 * 1024,
+          backBufferLength: 10,
           maxBufferHole: 0.5,
           lowLatencyMode: false,
+          startLevel: -1,
+          progressive: true,
+          fragLoadingTimeOut: 20000,
+          fragLoadingMaxRetry: 4,
+          fragLoadingMaxRetryTimeout: 32000,
+          manifestLoadingTimeOut: 15000,
+          manifestLoadingMaxRetry: 4,
+          manifestLoadingMaxRetryTimeout: 32000,
+          levelLoadingTimeOut: 15000,
+          levelLoadingMaxRetry: 4,
+          levelLoadingMaxRetryTimeout: 32000,
+          abrEwmaDefaultEstimate: 300000,
+          abrEwmaFastVoD: 0.9,
+          abrEwmaSlowVoD: 0.7,
         });
         hls.loadSource(streamUrl);
         hls.attachMedia(audioRef.current);
@@ -152,7 +167,28 @@ export function MusicPlayer({
         });
         hls.on(Hls.Events.ERROR, (_, data) => {
           if (isCancelled) return;
-          console.error("HLS error:", data);
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                console.error("Fatal network error, retrying:", data.details);
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                console.error("Fatal media error, recovering:", data.details);
+                hls.recoverMediaError();
+                break;
+              default:
+                console.error("Fatal HLS error:", data);
+                hls.destroy();
+                setIsLoading(false);
+                setIsPlaying(false);
+                break;
+            }
+          } else if (data.details === "bufferStalledError") {
+            // Non-fatal stall — HLS.js will auto-resume when buffer refills
+          } else {
+            console.error("HLS error:", data.details);
+          }
           setIsLoading(false);
         });
         hlsRef.current = hls;
