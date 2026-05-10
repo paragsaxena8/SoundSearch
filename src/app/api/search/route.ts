@@ -20,9 +20,11 @@ function isRateLimited(ip: string): boolean {
   return entry.count > RATE_MAX_REQUESTS
 }
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   // Rate limiting
-  const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown'
+  const ip = request.ip ?? 'unknown'
   if (isRateLimited(ip)) {
     return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
   }

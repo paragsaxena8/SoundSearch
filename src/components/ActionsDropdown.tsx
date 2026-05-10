@@ -123,52 +123,6 @@ export function SubMenu({ icon, label, children }: SubMenuProps) {
   )
 }
 
-interface RadioItemProps {
-  value: string
-  label: string
-  checked?: boolean
-  onSelect?: () => void
-}
-
-export function MenuRadioItem({ value, label, checked, onSelect }: RadioItemProps) {
-  return (
-    <DropdownMenu.RadioItem
-      value={value}
-      onSelect={onSelect}
-      className={cn(
-        'w-full px-4 py-2 text-left text-sm font-medium flex items-center gap-3',
-        'outline-none cursor-pointer',
-        checked
-          ? 'text-border bg-primary/20'
-          : 'text-text-primary focus:bg-surface-elevated'
-      )}
-    >
-      <span className="w-5 h-5 flex items-center justify-center flex-shrink-0">
-        {checked && (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-          </svg>
-        )}
-      </span>
-      <span>{label}</span>
-    </DropdownMenu.RadioItem>
-  )
-}
-
-interface RadioGroupProps {
-  value: string
-  onValueChange: (value: string) => void
-  children: ReactNode
-}
-
-export function MenuRadioGroup({ value, onValueChange, children }: RadioGroupProps) {
-  return (
-    <DropdownMenu.RadioGroup value={value} onValueChange={onValueChange}>
-      {children}
-    </DropdownMenu.RadioGroup>
-  )
-}
-
 export function MenuDivider() {
   return <DropdownMenu.Separator className="h-[2px] bg-border my-1" />
 }

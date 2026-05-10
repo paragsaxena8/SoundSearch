@@ -133,7 +133,13 @@ export function MusicPlayer({
       if (isCancelled) return;
 
       if (Hls.isSupported() && audioRef.current) {
-        const hls = new Hls();
+        const hls = new Hls({
+          maxBufferLength: 30,
+          maxMaxBufferLength: 60,
+          maxBufferSize: 30 * 1024 * 1024,
+          maxBufferHole: 0.5,
+          lowLatencyMode: false,
+        });
         hls.loadSource(streamUrl);
         hls.attachMedia(audioRef.current);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -527,10 +533,13 @@ export function MusicPlayer({
                 queue.map((queuedSong) => {
                   const isCurrent = queuedSong.id === song.id
                   return (
-                    <button
+                    <div
                       key={queuedSong.id}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => onPlayFromQueue(queuedSong)}
-                      className={`w-full text-left flex items-center gap-2.5 p-2 border-2 transition-all duration-100 ${
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onPlayFromQueue(queuedSong) }}
+                      className={`w-full text-left flex items-center gap-2.5 p-2 border-2 transition-all duration-100 cursor-pointer ${
                         isCurrent
                           ? "border-primary bg-primary/15 shadow-brutal-sm"
                           : "border-border bg-surface hover:border-primary hover:shadow-brutal-sm"
@@ -593,7 +602,7 @@ export function MusicPlayer({
                           </svg>
                         </button>
                       </div>
-                    </button>
+                    </div>
                   )
                 })
               )}
