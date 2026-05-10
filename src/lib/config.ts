@@ -1,18 +1,4 @@
-// Gaana API configuration
-
-export const GAANA_ENDPOINTS = {
-  search: 'https://gaana.com/apiv2',
-  detail: 'https://gaana.com/apiv2',
-} as const
-
-export const GAANA_DEFAULTS = {
-  country: 'IN',
-  page: 0,
-  secType: 'track',
-  type: 'search',
-  limit: 5,
-  key: process.env.GAANA_KEY_BASE64 || '', // Base64-encoded AES key from environment variable
-} as const
+// Shared (client-safe) configuration — no secrets
 
 export type Quality = 'low' | 'medium' | 'high'
 
@@ -29,7 +15,6 @@ export const QUALITY_TO_MUSIC_KEY: Record<Quality, 'low' | 'medium' | 'high' | '
   medium: 'medium',
   high: 'very_high',
 }
-
 
 // Language badge colors — neon brutalism palette
 export const LANGUAGE_COLORS: Record<string, string> = {

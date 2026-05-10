@@ -76,7 +76,7 @@ export function AddToPlaylistDropdown({ song }: AddToPlaylistDropdownProps) {
   }
 
   const handleCreatePlaylist = async () => {
-    if (!newPlaylistName.trim()) return
+    if (!newPlaylistName.trim() || newPlaylistName.trim().length > 100) return
 
     setIsCreating(true)
     try {

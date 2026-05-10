@@ -1,6 +1,6 @@
 import axios from 'axios'
 import crypto from 'crypto'
-import { GAANA_ENDPOINTS, GAANA_DEFAULTS } from './config'
+import { GAANA_ENDPOINTS, GAANA_DEFAULTS } from './gaana.server'
 
 interface GaanaTrack {
   seo: string
@@ -37,6 +37,9 @@ function getKey(): Buffer {
 function decrypt(encryptedData: string): string {
   const key = getKey()
   const offset = parseInt(encryptedData[0])
+  if (Number.isNaN(offset) || offset < 0 || offset + 16 > encryptedData.length) {
+    throw new Error('Invalid encrypted data format')
+  }
   const iv = Buffer.from(encryptedData.slice(offset, offset + 16), 'utf8')
   const encrypted = Buffer.from(encryptedData.slice(offset + 16), 'base64')
 
@@ -91,7 +94,7 @@ export async function searchSongs(query: string, limit: number = GAANA_DEFAULTS.
 
 async function getTrackDetail(seoKey: string): Promise<Song | null> {
   try {
-    const detailUrl = `${GAANA_ENDPOINTS.detail}?type=songDetail&seokey=${seoKey}`
+    const detailUrl = `${GAANA_ENDPOINTS.detail}?type=songDetail&seokey=${encodeURIComponent(seoKey)}`
     const { data } = await axios.post<GaanaDetailResponse>(detailUrl)
     const track = data.tracks[0]
 

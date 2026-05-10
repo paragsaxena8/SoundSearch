@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { cn } from '@/lib/utils'
+import { cn, safeWindowOpen } from '@/lib/utils'
 import { usePlaylist, storedSongToSong } from '@/lib/playlist'
 import { ActionsDropdown, MenuItem, MenuDivider } from './ActionsDropdown'
 import type { Song } from '@/lib/gaana'
 import type { Quality } from '@/lib/config'
 import { QUALITY_TO_MUSIC_KEY } from '@/lib/config'
+import type { StoredSong } from '@/lib/db'
 
 interface PlaylistModalProps {
   isOpen: boolean
@@ -20,20 +21,25 @@ interface PlaylistModalProps {
 export function PlaylistModal({ isOpen, onClose, onPlaySong, onAddToQueue, initialPlaylistId, defaultQuality = 'high' }: PlaylistModalProps) {
   const { playlists, isLoading, createNewPlaylist, removePlaylist, getSongs } = usePlaylist()
   const [selectedPlaylist, setSelectedPlaylist] = useState<string | null>(initialPlaylistId ?? null)
-  const [songs, setSongs] = useState<{ id: string; title: string; artists: string; thumbnail: { small: string } }[]>([])
+  const [songs, setSongs] = useState<StoredSong[]>([])
   const [isCreating, setIsCreating] = useState(false)
   const [newPlaylistName, setNewPlaylistName] = useState('')
 
   // Auto-load songs when opened directly to a specific playlist
   useEffect(() => {
+    let isCancelled = false
     if (isOpen && initialPlaylistId) {
-      handleSelectPlaylist(initialPlaylistId)
+      setSelectedPlaylist(initialPlaylistId)
+      getSongs(initialPlaylistId).then((playlistSongs) => {
+        if (!isCancelled) setSongs(playlistSongs)
+      })
     }
     if (!isOpen) {
       setSelectedPlaylist(null)
       setSongs([])
     }
-  }, [isOpen, initialPlaylistId])
+    return () => { isCancelled = true }
+  }, [isOpen, initialPlaylistId, getSongs])
 
   const handleSelectPlaylist = async (playlistId: string) => {
     setSelectedPlaylist(playlistId)
@@ -42,7 +48,7 @@ export function PlaylistModal({ isOpen, onClose, onPlaySong, onAddToQueue, initi
   }
 
   const handleCreatePlaylist = async () => {
-    if (!newPlaylistName.trim()) return
+    if (!newPlaylistName.trim() || newPlaylistName.trim().length > 100) return
     setIsCreating(true)
     try {
       await createNewPlaylist(newPlaylistName.trim())
@@ -54,38 +60,38 @@ export function PlaylistModal({ isOpen, onClose, onPlaySong, onAddToQueue, initi
     }
   }
 
-  const toSong = (storedSong: { id: string; title: string; artists: string; thumbnail: { small: string }; musicUrl: string }): Song => ({
+  const toSong = (storedSong: StoredSong): Song => ({
     id: storedSong.id,
     title: storedSong.title,
     artists: storedSong.artists,
-    album: '',
-    duration: '',
-    language: '',
+    album: storedSong.album,
+    duration: storedSong.duration,
+    language: storedSong.language,
     music: {
       very_high: storedSong.musicUrl,
       high: storedSong.musicUrl,
       medium: storedSong.musicUrl,
       low: storedSong.musicUrl,
     },
-    thumbnail: { large: '', medium: '', small: storedSong.thumbnail.small },
+    thumbnail: storedSong.thumbnail,
   })
 
-  const handlePlaySong = (storedSong: { id: string; title: string; artists: string; thumbnail: { small: string }; musicUrl: string }) => {
+  const handlePlaySong = (storedSong: StoredSong) => {
     const song = toSong(storedSong)
     onPlaySong(song, defaultQuality)
   }
 
-  const handleAddToQueue = (storedSong: { id: string; title: string; artists: string; thumbnail: { small: string }; musicUrl: string }) => {
+  const handleAddToQueue = (storedSong: StoredSong) => {
     if (!onAddToQueue) return
     const song = toSong(storedSong)
     onAddToQueue(song)
   }
 
-  const handleDownload = (storedSong: { id: string; title: string; artists: string; thumbnail: { small: string }; musicUrl: string }) => {
+  const handleDownload = (storedSong: StoredSong) => {
     const song = toSong(storedSong)
     const musicKey = QUALITY_TO_MUSIC_KEY[defaultQuality]
     const url = song.music[musicKey] || song.music.high || song.music.medium || song.music.low
-    if (url) window.open(url, '_blank')
+    if (url) safeWindowOpen(url)
   }
 
   if (!isOpen) return null
@@ -147,13 +153,7 @@ export function PlaylistModal({ isOpen, onClose, onPlaySong, onAddToQueue, initi
                     </div>
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => handlePlaySong({
-                          id: song.id,
-                          title: song.title,
-                          artists: song.artists,
-                          thumbnail: song.thumbnail,
-                          musicUrl: (song as any).musicUrl || '',
-                        })}
+                        onClick={() => handlePlaySong(song)}
                         className="w-8 h-8 border-2 border-border bg-primary flex items-center justify-center hover:shadow-brutal-sm hover:-translate-x-[1px] hover:-translate-y-[1px] active:shadow-none active:translate-x-[1px] active:translate-y-[1px] transition-all"
                         title="Play"
                       >
@@ -170,13 +170,7 @@ export function PlaylistModal({ isOpen, onClose, onPlaySong, onAddToQueue, initi
                               </svg>
                             }
                             label="Add to queue"
-                            onClick={() => handleAddToQueue({
-                              id: song.id,
-                              title: song.title,
-                              artists: song.artists,
-                              thumbnail: song.thumbnail,
-                              musicUrl: (song as any).musicUrl || '',
-                            })}
+                            onClick={() => handleAddToQueue(song)}
                           />
                         )}
                         <MenuDivider />
@@ -187,13 +181,7 @@ export function PlaylistModal({ isOpen, onClose, onPlaySong, onAddToQueue, initi
                             </svg>
                           }
                           label="Download"
-                          onClick={() => handleDownload({
-                            id: song.id,
-                            title: song.title,
-                            artists: song.artists,
-                            thumbnail: song.thumbnail,
-                            musicUrl: (song as any).musicUrl || '',
-                          })}
+                          onClick={() => handleDownload(song)}
                         />
                       </ActionsDropdown>
                     </div>

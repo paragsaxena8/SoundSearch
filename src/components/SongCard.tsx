@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { cn, getLanguageColor } from '@/lib/utils'
+import { cn, getLanguageColor, safeWindowOpen } from '@/lib/utils'
 import { ActionsDropdown, MenuItem, MenuDivider, SubMenu } from './ActionsDropdown'
 import { AddToPlaylistDropdown } from './AddToPlaylistDropdown'
 import type { Song } from '@/lib/gaana'
@@ -27,7 +27,7 @@ export function SongCard({ song, onPlay, onAddToQueue, defaultQuality = 'high' }
 
   const handleDownload = () => {
     const url = song.music[musicKey] || song.music.high || song.music.medium || song.music.low
-    if (url) window.open(url, '_blank')
+    if (url) safeWindowOpen(url)
   }
 
   return (

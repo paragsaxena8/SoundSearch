@@ -6,6 +6,7 @@ import type { Quality } from "@/lib/config";
 import { QUALITY_TO_MUSIC_KEY } from "@/lib/config";
 import { usePlaylist } from "@/lib/playlist";
 import { useToast } from "@/lib/toast";
+import { safeWindowOpen } from "@/lib/utils";
 import { ActionsDropdown, MenuItem, MenuDivider, SubMenu } from "./ActionsDropdown";
 import { AddToPlaylistDropdown } from "./AddToPlaylistDropdown";
 
@@ -124,16 +125,19 @@ export function MusicPlayer({
   }, [getLikedPlaylistId, isSongAdded, song.id]);
 
   useEffect(() => {
+    let isCancelled = false;
     const loadHls = async () => {
       if (!streamUrl) return;
 
       const Hls = (await import("hls.js")).default;
+      if (isCancelled) return;
 
       if (Hls.isSupported() && audioRef.current) {
         const hls = new Hls();
         hls.loadSource(streamUrl);
         hls.attachMedia(audioRef.current);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (isCancelled) return;
           setIsLoading(false);
           if (autoPlay && !hasAutoPlayed.current && audioRef.current) {
             hasAutoPlayed.current = true;
@@ -141,6 +145,7 @@ export function MusicPlayer({
           }
         });
         hls.on(Hls.Events.ERROR, (_, data) => {
+          if (isCancelled) return;
           console.error("HLS error:", data);
           setIsLoading(false);
         });
@@ -162,6 +167,7 @@ export function MusicPlayer({
     loadHls();
 
     return () => {
+      isCancelled = true;
       if (hlsRef.current) hlsRef.current.destroy();
     };
   }, [streamUrl, autoPlay]);
@@ -248,7 +254,7 @@ export function MusicPlayer({
 
   const handleDownload = useCallback(() => {
     if (!streamUrl) return;
-    window.open(streamUrl, "_blank");
+    safeWindowOpen(streamUrl);
     showToast("Download started", "Opened stream URL in a new tab");
   }, [streamUrl, showToast]);
 
@@ -378,6 +384,7 @@ export function MusicPlayer({
                     max={duration || 100}
                     value={currentTime}
                     onChange={handleSeek}
+                    aria-label="Seek audio position"
                     className="w-full h-2 bg-surface-elevated appearance-none cursor-pointer border border-border
                       [&::-webkit-slider-thumb]:appearance-none
                       [&::-webkit-slider-thumb]:w-4
@@ -717,6 +724,7 @@ export function MusicPlayer({
                   max={duration || 100}
                   value={currentTime}
                   onChange={handleSeek}
+                  aria-label="Seek audio position"
                   className="w-full h-1.5 bg-surface-elevated appearance-none cursor-pointer border border-border
                     [&::-webkit-slider-thumb]:appearance-none
                     [&::-webkit-slider-thumb]:w-3
