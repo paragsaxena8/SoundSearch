@@ -1,7 +1,11 @@
+import type { Song } from './gaana'
+
 const DB_NAME = 'soundsearch'
-const DB_VERSION = 1
+const DB_VERSION = 2
 const PLAYLISTS_STORE = 'playlists'
 const SONGS_STORE = 'songs'
+const RECENT_PLAYS_STORE = 'recentPlays'
+const RECENT_SEARCHES_STORE = 'recentSearches'
 
 export interface StoredSong {
   id: string // song id
@@ -35,6 +39,14 @@ export function getDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION)
 
+    request.onblocked = () => {
+      // Close existing connection if blocked
+      if (dbInstance) {
+        dbInstance.close()
+        dbInstance = null
+      }
+    }
+
     request.onerror = () => reject(request.error)
 
     request.onsuccess = () => {
@@ -54,6 +66,16 @@ export function getDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(SONGS_STORE)) {
         const songsStore = db.createObjectStore(SONGS_STORE, { keyPath: 'id' })
         songsStore.createIndex('playlistId', 'playlistId', { unique: false })
+      }
+
+      // Create recent plays store
+      if (!db.objectStoreNames.contains(RECENT_PLAYS_STORE)) {
+        db.createObjectStore(RECENT_PLAYS_STORE, { keyPath: 'id' })
+      }
+
+      // Create recent searches store
+      if (!db.objectStoreNames.contains(RECENT_SEARCHES_STORE)) {
+        db.createObjectStore(RECENT_SEARCHES_STORE, { keyPath: 'id' })
       }
     }
   })
@@ -184,9 +206,9 @@ export async function addSongToPlaylist(
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([PLAYLISTS_STORE, SONGS_STORE], 'readwrite')
 
-    // Add song
+    // Add song (use put to be idempotent)
     const songsStore = transaction.objectStore(SONGS_STORE)
-    songsStore.add(storedSong)
+    songsStore.put(storedSong)
 
     // Update playlist
     if (!playlist.songIds.includes(storedSong.id)) {
@@ -255,5 +277,113 @@ export async function isSongInPlaylist(playlistId: string, songId: string): Prom
 
     request.onsuccess = () => resolve(!!request.result)
     request.onerror = () => reject(request.error)
+  })
+}
+
+// Recent plays operations
+export interface StoredRecentPlay {
+  id: string // song id
+  song: Song
+  quality: string
+  playedAt: number
+}
+
+export async function getAllRecentPlays(): Promise<StoredRecentPlay[]> {
+  const db = await getDB()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(RECENT_PLAYS_STORE, 'readonly')
+    const store = transaction.objectStore(RECENT_PLAYS_STORE)
+    const request = store.getAll()
+    request.onsuccess = () => {
+      const items = (request.result as StoredRecentPlay[]).sort((a, b) => b.playedAt - a.playedAt)
+      resolve(items)
+    }
+    request.onerror = () => reject(request.error)
+  })
+}
+
+export async function putRecentPlay(play: StoredRecentPlay): Promise<void> {
+  const db = await getDB()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(RECENT_PLAYS_STORE, 'readwrite')
+    const store = transaction.objectStore(RECENT_PLAYS_STORE)
+    store.put(play)
+    transaction.oncomplete = () => resolve()
+    transaction.onerror = () => reject(transaction.error)
+  })
+}
+
+export async function deleteRecentPlay(id: string): Promise<void> {
+  const db = await getDB()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(RECENT_PLAYS_STORE, 'readwrite')
+    const store = transaction.objectStore(RECENT_PLAYS_STORE)
+    store.delete(id)
+    transaction.oncomplete = () => resolve()
+    transaction.onerror = () => reject(transaction.error)
+  })
+}
+
+export async function clearAllRecentPlays(): Promise<void> {
+  const db = await getDB()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(RECENT_PLAYS_STORE, 'readwrite')
+    const store = transaction.objectStore(RECENT_PLAYS_STORE)
+    store.clear()
+    transaction.oncomplete = () => resolve()
+    transaction.onerror = () => reject(transaction.error)
+  })
+}
+
+// Recent searches operations
+export interface StoredRecentSearch {
+  id: string // the search query text, used as key
+  searchedAt: number
+}
+
+export async function getAllRecentSearches(): Promise<StoredRecentSearch[]> {
+  const db = await getDB()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(RECENT_SEARCHES_STORE, 'readonly')
+    const store = transaction.objectStore(RECENT_SEARCHES_STORE)
+    const request = store.getAll()
+    request.onsuccess = () => {
+      const items = (request.result as StoredRecentSearch[]).sort((a, b) => b.searchedAt - a.searchedAt)
+      resolve(items)
+    }
+    request.onerror = () => reject(request.error)
+  })
+}
+
+export async function putRecentSearch(search: StoredRecentSearch): Promise<void> {
+  const db = await getDB()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(RECENT_SEARCHES_STORE, 'readwrite')
+    const store = transaction.objectStore(RECENT_SEARCHES_STORE)
+    store.put(search)
+    transaction.oncomplete = () => resolve()
+    transaction.onerror = () => reject(transaction.error)
+  })
+}
+
+export async function deleteRecentSearch(id: string): Promise<void> {
+  const db = await getDB()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(RECENT_SEARCHES_STORE, 'readwrite')
+    const store = transaction.objectStore(RECENT_SEARCHES_STORE)
+    store.delete(id)
+    transaction.oncomplete = () => resolve()
+    transaction.onerror = () => reject(transaction.error)
+  })
+}
+
+export async function clearAllRecentSearches(): Promise<void> {
+  const db = await getDB()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(RECENT_SEARCHES_STORE, 'readwrite')
+    const store = transaction.objectStore(RECENT_SEARCHES_STORE)
+    store.clear()
+    transaction.oncomplete = () => resolve()
+    transaction.onerror = () => reject(transaction.error)
   })
 }

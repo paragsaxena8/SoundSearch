@@ -78,6 +78,8 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
   }, [refreshPlaylists])
 
   const addSong = useCallback(async (playlistId: string, song: Song) => {
+    const exists = await isSongInPlaylist(playlistId, song.id)
+    if (exists) return
     await addSongToPlaylist(playlistId, song)
     await refreshPlaylists()
   }, [refreshPlaylists])

@@ -2,19 +2,19 @@
 
 import { useState } from 'react'
 import { cn, getLanguageColor } from '@/lib/utils'
-import { ActionsDropdown, MenuItem, MenuDivider } from './ActionsDropdown'
-import { QualitySelector } from './QualitySelector'
+import { ActionsDropdown, MenuItem, MenuDivider, SubMenu, MenuRadioGroup, MenuRadioItem } from './ActionsDropdown'
 import { AddToPlaylistDropdown } from './AddToPlaylistDropdown'
 import type { Song } from '@/lib/gaana'
 import type { Quality } from '@/lib/config'
-import { QUALITY_OPTIONS, DEFAULT_QUALITY, QUALITY_TO_MUSIC_KEY } from '@/lib/config'
+import { QUALITY_OPTIONS, QUALITY_TO_MUSIC_KEY, DEFAULT_QUALITY } from '@/lib/config'
 
 interface FeatureCardProps {
   song: Song
   onPlay: (song: Song, quality: Quality) => void
+  onAddToQueue?: (song: Song) => void
 }
 
-export function FeatureCard({ song, onPlay }: FeatureCardProps) {
+export function FeatureCard({ song, onPlay, onAddToQueue }: FeatureCardProps) {
   const [quality, setQuality] = useState<Quality>(DEFAULT_QUALITY)
   const [isHovered, setIsHovered] = useState(false)
 
@@ -37,7 +37,7 @@ export function FeatureCard({ song, onPlay }: FeatureCardProps) {
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="flex flex-col sm:flex-row gap-6 bg-surface rounded-card p-4 transition-all duration-200 hover:shadow-elevated">
-        {/* Album art with play overlay */}
+        {/* Album art */}
         <div
           className="relative aspect-square sm:w-64 sm:h-64 flex-shrink-0 rounded-card overflow-hidden cursor-pointer"
           onClick={hasUrl ? handlePlay : undefined}
@@ -79,34 +79,86 @@ export function FeatureCard({ song, onPlay }: FeatureCardProps) {
           </div>
         </div>
 
-        {/* Song info */}
-        <div className="flex flex-col justify-center flex-1">
-          <h2 className="text-2xl font-bold text-text-primary mb-2">{song.title}</h2>
-          <p className="text-lg text-text-secondary mb-1">{song.artists}</p>
-          <p className="text-base text-text-muted italic mb-6">{song.album}</p>
-
-          {/* Actions */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Quality selector */}
-            <QualitySelector value={quality} onChange={setQuality} />
-
-            {/* Actions dropdown */}
-            <ActionsDropdown>
-              <div className="py-1">
-                <AddToPlaylistDropdown song={song} />
-              </div>
-              <MenuDivider />
-              <MenuItem
-                icon={
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                  </svg>
-                }
-                label="Download"
-                onClick={handleDownload}
-              />
-            </ActionsDropdown>
+        {/* Song info + actions */}
+        <div className="flex flex-col flex-1 min-w-0">
+          {/* Title row with play button and dropdown */}
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-2xl font-bold text-text-primary mb-1 truncate">{song.title}</h2>
+              <p className="text-lg text-text-secondary truncate">{song.artists}</p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 mt-1">
+              <button
+                onClick={handlePlay}
+                disabled={!hasUrl}
+                className="w-10 h-10 rounded-full bg-primary flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Play"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </button>
+              <ActionsDropdown>
+                <MenuItem
+                  icon={
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                  }
+                  label="Play"
+                  onClick={handlePlay}
+                />
+                {onAddToQueue && (
+                  <MenuItem
+                    icon={
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                    }
+                    label="Add to queue"
+                    onClick={() => onAddToQueue(song)}
+                  />
+                )}
+                <MenuDivider />
+                <SubMenu
+                  icon={
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
+                  }
+                  label="Add to playlist"
+                >
+                  <AddToPlaylistDropdown song={song} />
+                </SubMenu>
+                <SubMenu
+                  icon={
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                    </svg>
+                  }
+                  label="Quality"
+                >
+                  <MenuRadioGroup value={quality} onValueChange={(v) => setQuality(v as Quality)}>
+                    {QUALITY_OPTIONS.map((opt) => (
+                      <MenuRadioItem key={opt.value} value={opt.value} label={opt.label} checked={quality === opt.value} />
+                    ))}
+                  </MenuRadioGroup>
+                </SubMenu>
+                <MenuDivider />
+                <MenuItem
+                  icon={
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                    </svg>
+                  }
+                  label="Download"
+                  onClick={handleDownload}
+                />
+              </ActionsDropdown>
+            </div>
           </div>
+
+          <p className="text-base text-text-muted italic mb-4">{song.album}</p>
         </div>
       </div>
     </article>

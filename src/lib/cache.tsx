@@ -3,6 +3,15 @@
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react'
 import type { Song } from './gaana'
 import type { Quality } from './config'
+import {
+  getAllRecentPlays,
+  putRecentPlay,
+  clearAllRecentPlays,
+  getAllRecentSearches,
+  putRecentSearch,
+  clearAllRecentSearches,
+  getDB,
+} from './db'
 
 interface NowPlaying {
   song: Song
@@ -20,6 +29,7 @@ interface CacheState {
   streamUrls: Map<string, { [key in 'low' | 'medium' | 'high' | 'very_high']?: string }>
   nowPlaying: NowPlaying | null
   recentPlays: RecentPlay[]
+  recentSearches: string[]
 }
 
 interface CacheContextType {
@@ -33,6 +43,9 @@ interface CacheContextType {
   getRecentPlays: () => RecentPlay[]
   addRecentPlay: (song: Song, quality: Quality) => void
   clearRecentPlays: () => void
+  getRecentSearches: () => string[]
+  addRecentSearch: (query: string) => void
+  clearRecentSearches: () => void
   clearCache: () => void
 }
 
@@ -40,10 +53,10 @@ const CacheContext = createContext<CacheContextType | null>(null)
 
 const CACHE_DURATION = 30 * 60 * 1000 // 30 minutes
 const NOW_PLAYING_KEY = 'soundsearch_nowplaying'
-const RECENT_PLAYS_KEY = 'soundsearch_recentplays'
 const MAX_RECENT_PLAYS = 5
+const MAX_RECENT_SEARCHES = 10
 
-// Helper to load now-playing from localStorage
+// Helper to load now-playing from localStorage (kept here — single small object)
 function loadNowPlayingFromStorage(): NowPlaying | null {
   if (typeof window === 'undefined') return null
   try {
@@ -57,7 +70,6 @@ function loadNowPlayingFromStorage(): NowPlaying | null {
   return null
 }
 
-// Helper to save now-playing to localStorage
 function saveNowPlayingToStorage(data: NowPlaying | null) {
   if (typeof window === 'undefined') return
   try {
@@ -71,47 +83,37 @@ function saveNowPlayingToStorage(data: NowPlaying | null) {
   }
 }
 
-// Helper to load recent plays from localStorage
-function loadRecentPlaysFromStorage(): RecentPlay[] {
-  if (typeof window === 'undefined') return []
-  try {
-    const stored = localStorage.getItem(RECENT_PLAYS_KEY)
-    if (stored) {
-      return JSON.parse(stored)
-    }
-  } catch {
-    // Ignore errors
-  }
-  return []
-}
-
-// Helper to save recent plays to localStorage
-function saveRecentPlaysToStorage(data: RecentPlay[]) {
-  if (typeof window === 'undefined') return
-  try {
-    localStorage.setItem(RECENT_PLAYS_KEY, JSON.stringify(data))
-  } catch {
-    // Ignore errors
-  }
-}
-
 export function CacheProvider({ children }: { children: ReactNode }) {
   const [cache, setCache] = useState<CacheState>({
     searchResults: new Map(),
     streamUrls: new Map(),
     nowPlaying: null,
     recentPlays: [],
+    recentSearches: [],
   })
 
-  // Load now-playing and recent plays from localStorage on mount
+  // Load persisted data on mount
   useEffect(() => {
-    const stored = loadNowPlayingFromStorage()
-    const recentPlays = loadRecentPlaysFromStorage()
-    setCache((prev) => ({
-      ...prev,
-      nowPlaying: stored,
-      recentPlays,
-    }))
+    const load = async () => {
+      await getDB() // ensure DB is initialized
+      const [storedPlays, storedSearches] = await Promise.all([
+        getAllRecentPlays(),
+        getAllRecentSearches(),
+      ])
+      const storedNowPlaying = loadNowPlayingFromStorage()
+
+      setCache((prev) => ({
+        ...prev,
+        nowPlaying: storedNowPlaying,
+        recentPlays: storedPlays.map((p) => ({
+          song: p.song,
+          quality: p.quality as Quality,
+          playedAt: p.playedAt,
+        })),
+        recentSearches: storedSearches.map((s) => s.id),
+      }))
+    }
+    load()
   }, [])
 
   const getSearchResults = useCallback((query: string, limit: number): Song[] | null => {
@@ -185,15 +187,36 @@ export function CacheProvider({ children }: { children: ReactNode }) {
 
   const addRecentPlay = useCallback((song: Song, quality: Quality) => {
     setCache((prev) => {
-      // Remove existing entry for this song if present
+      // Skip if the same song is already the most recent play
+      if (prev.recentPlays.length > 0 && prev.recentPlays[0].song.id === song.id) {
+        return prev
+      }
+      // Remove existing entry for this song if present further back
       const filtered = prev.recentPlays.filter((rp) => rp.song.id !== song.id)
-      // Add new entry at the beginning
       const newRecentPlays = [
         { song, quality, playedAt: Date.now() },
         ...filtered,
       ].slice(0, MAX_RECENT_PLAYS)
-      // Save to localStorage
-      saveRecentPlaysToStorage(newRecentPlays)
+
+      // Persist to IndexedDB (fire and forget)
+      ;(async () => {
+        await getDB()
+        // Delete old entry for this song
+        await putRecentPlay({
+          id: song.id,
+          song,
+          quality,
+          playedAt: Date.now(),
+        })
+        // Prune excess entries
+        const all = await getAllRecentPlays()
+        const toDelete = all.filter((p) => !newRecentPlays.some((rp) => rp.song.id === p.id))
+        for (const p of toDelete) {
+          const { deleteRecentPlay } = await import('./db')
+          await deleteRecentPlay(p.id)
+        }
+      })()
+
       return {
         ...prev,
         recentPlays: newRecentPlays,
@@ -202,21 +225,58 @@ export function CacheProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const clearRecentPlays = useCallback(() => {
-    saveRecentPlaysToStorage([])
+    clearAllRecentPlays()
     setCache((prev) => ({
       ...prev,
       recentPlays: [],
     }))
   }, [])
 
+  const getRecentSearches = useCallback((): string[] => {
+    return cache.recentSearches
+  }, [cache.recentSearches])
+
+  const addRecentSearch = useCallback((query: string) => {
+    setCache((prev) => {
+      const filtered = prev.recentSearches.filter((s) => s.toLowerCase() !== query.toLowerCase())
+      const newRecentSearches = [query, ...filtered].slice(0, MAX_RECENT_SEARCHES)
+
+      // Persist to IndexedDB (fire and forget)
+      ;(async () => {
+        await getDB()
+        await putRecentSearch({ id: query, searchedAt: Date.now() })
+        // Prune excess entries
+        const all = await getAllRecentSearches()
+        const toKeep = newRecentSearches.map((s) => s.toLowerCase())
+        const toDelete = all.filter((s) => !toKeep.includes(s.id.toLowerCase()))
+        for (const s of toDelete) {
+          const { deleteRecentSearch } = await import('./db')
+          await deleteRecentSearch(s.id)
+        }
+      })()
+
+      return { ...prev, recentSearches: newRecentSearches }
+    })
+  }, [])
+
+  const clearRecentSearches = useCallback(() => {
+    clearAllRecentSearches()
+    setCache((prev) => ({
+      ...prev,
+      recentSearches: [],
+    }))
+  }, [])
+
   const clearCache = useCallback(() => {
     saveNowPlayingToStorage(null)
-    saveRecentPlaysToStorage([])
+    clearAllRecentPlays()
+    clearAllRecentSearches()
     setCache({
       searchResults: new Map(),
       streamUrls: new Map(),
       nowPlaying: null,
       recentPlays: [],
+      recentSearches: [],
     })
   }, [])
 
@@ -233,6 +293,9 @@ export function CacheProvider({ children }: { children: ReactNode }) {
         getRecentPlays,
         addRecentPlay,
         clearRecentPlays,
+        getRecentSearches,
+        addRecentSearch,
+        clearRecentSearches,
         clearCache,
       }}
     >

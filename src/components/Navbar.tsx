@@ -1,3 +1,5 @@
+import Link from "next/link"
+
 interface NavbarProps {
   onOpenPlaylists?: () => void
 }
@@ -6,6 +8,7 @@ export function Navbar({ onOpenPlaylists }: NavbarProps) {
   return (
     <header className="flex items-center justify-between h-16 px-6 border-b border-border bg-canvas">
       <div className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3 group">
         <div className="flex items-center justify-center w-9 h-9 rounded-[10px] bg-primary">
           <svg
             width="20"
@@ -18,6 +21,7 @@ export function Navbar({ onOpenPlaylists }: NavbarProps) {
           </svg>
         </div>
         <span className="text-lg font-semibold text-text-primary">SoundSearch</span>
+        </Link>
       </div>
 
       {onOpenPlaylists && (

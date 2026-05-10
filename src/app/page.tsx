@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Navbar, SearchBar, SongCard, FeatureCard, LoadingSkeleton, EmptyState, ErrorState, MusicPlayer, PlaylistModal, RecentPlays, Toaster, DashboardPlaylists } from '@/components'
 import { CacheProvider, useSearchCache, useCache } from '@/lib/cache'
 import { PlaylistProvider, usePlaylist } from '@/lib/playlist'
-import { ToastProvider } from '@/lib/toast'
+import { ToastProvider, useToast } from '@/lib/toast'
 import type { Song } from '@/lib/gaana'
 import type { LimitOption } from '@/types'
 import type { Quality } from '@/lib/config'
@@ -12,7 +12,8 @@ import type { Quality } from '@/lib/config'
 function SearchPage() {
   const { songs, isLoading, error, hasSearched, search } = useSearchCache()
   const { playlists } = usePlaylist()
-  const { getNowPlaying, getRecentPlays, setNowPlaying, clearNowPlaying, addRecentPlay } = useCache()
+  const { getNowPlaying, getRecentPlays, setNowPlaying, clearNowPlaying, addRecentPlay, getRecentSearches, addRecentSearch, clearRecentSearches } = useCache()
+  const { showToast } = useToast()
   const [currentSong, setCurrentSong] = useState<Song | null>(null)
   const [queue, setQueue] = useState<Song[]>([])
   const [currentQuality, setCurrentQuality] = useState<Quality>('high')
@@ -20,25 +21,48 @@ function SearchPage() {
   const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState(false)
   const [openPlaylistId, setOpenPlaylistId] = useState<string | null>(null)
 
-  // Restore now-playing from cache on mount
+  // Restore now-playing and queue from cache on mount
   useEffect(() => {
     const cached = getNowPlaying()
     if (cached) {
       setCurrentSong(cached.song)
-      setQueue([cached.song])
       setCurrentQuality(cached.quality)
-      // Don't auto-play on restore - user needs to hit play
     }
+    try {
+      const savedQueue = localStorage.getItem('soundsearch_queue')
+      if (savedQueue) {
+        const parsed = JSON.parse(savedQueue) as Song[]
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setQueue(parsed)
+        } else if (cached) {
+          setQueue([cached.song])
+        }
+      } else if (cached) {
+        setQueue([cached.song])
+      }
+    } catch {
+      if (cached) setQueue([cached.song])
+    }
+    // Don't auto-play on restore - user needs to hit play
   }, [getNowPlaying])
 
+  // Persist queue to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('soundsearch_queue', JSON.stringify(queue))
+    } catch {
+      // Ignore storage errors
+    }
+  }, [queue])
+
   const handleSearch = (query: string, limit: LimitOption) => {
-    // Don't clear player on new search - keep playing
+    addRecentSearch(query)
     search(query, limit)
   }
 
   const handlePlay = (song: Song, quality: Quality) => {
     setCurrentSong(song)
-    setQueue((prev) => [...prev, song])
+    setQueue((prev) => prev.some((s) => s.id === song.id) ? prev : [...prev, song])
     setCurrentQuality(quality)
     setIsPlaying(true)
     setNowPlaying(song, quality)
@@ -46,16 +70,20 @@ function SearchPage() {
     addRecentPlay(song, quality)
   }
 
+  const handleAddToQueue = (song: Song) => {
+    setQueue((prev) => prev.some((s) => s.id === song.id) ? prev : [...prev, song])
+    showToast('Added to queue', song.title)
+  }
+
   const handleClosePlayer = () => {
     setCurrentSong(null)
-    setQueue([])
     setIsPlaying(false)
     clearNowPlaying()
   }
 
   const handlePlayFromPlaylist = (song: Song, quality: Quality) => {
     setCurrentSong(song)
-    setQueue((prev) => [...prev, song])
+    setQueue((prev) => prev.some((s) => s.id === song.id) ? prev : [...prev, song])
     setCurrentQuality(quality)
     setIsPlaying(true)
     setNowPlaying(song, quality)
@@ -134,9 +162,9 @@ function SearchPage() {
   const handleClearQueue = () => {
     if (!currentSong) {
       setQueue([])
-      return
+    } else {
+      setQueue([currentSong])
     }
-    setQueue([currentSong])
   }
 
   const featuredSong = songs[0]
@@ -156,7 +184,7 @@ function SearchPage() {
             Search millions of songs from Gaana
           </p>
 
-          <SearchBar onSearch={handleSearch} isLoading={isLoading} />
+          <SearchBar onSearch={handleSearch} isLoading={isLoading} recentSearches={getRecentSearches()} onClearRecentSearches={clearRecentSearches} />
         </main>
 
         <section className="px-6 pb-16">
@@ -182,14 +210,14 @@ function SearchPage() {
             <div className="max-w-4xl mx-auto space-y-6">
               {/* Featured song */}
               {featuredSong && (
-                <FeatureCard song={featuredSong} onPlay={handlePlay} />
+                <FeatureCard song={featuredSong} onPlay={handlePlay} onAddToQueue={handleAddToQueue} />
               )}
 
               {/* Rest as list */}
               {restSongs.length > 0 && (
                 <div className="space-y-3">
                   {restSongs.map((song) => (
-                    <SongCard key={song.id} song={song} onPlay={handlePlay} />
+                    <SongCard key={song.id} song={song} onPlay={handlePlay} onAddToQueue={handleAddToQueue} />
                   ))}
                 </div>
               )}
